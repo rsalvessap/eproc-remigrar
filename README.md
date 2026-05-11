@@ -30,9 +30,22 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 ## Instalação
 
+> **Redes corporativas (ex: TJSP):** o link de instalação direta pode ser bloqueado pelo proxy da rede. Use o método manual abaixo.
+
+### Método 1 — Instalação direta *(fora da rede corporativa)*
+
 👉 [Clique aqui para instalar o script](https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/eproc-remigrar/eproc-remigrar.user.js)
 
 O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **Instalar**.
+
+### Método 2 — Instalação manual *(recomendado na rede do TJSP)*
+
+1. Acesse a página do script no GitHub: [eproc-remigrar.user.js](https://github.com/rsalvessap/eproc-scripts-gerais/blob/master/eproc-remigrar/eproc-remigrar.user.js)
+2. Clique no botão **Raw** (canto superior direito do arquivo)
+3. Selecione todo o conteúdo da página (`Ctrl + A`) e copie (`Ctrl + C`)
+4. Clique no ícone do Tampermonkey → **Criar novo script**
+5. Apague o conteúdo padrão, cole o código copiado (`Ctrl + V`)
+6. Salve com `Ctrl + S`
 
 Após instalar, acesse a página do remigrar no eProc e a HUD aparecerá automaticamente no canto inferior direito:
 `https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
