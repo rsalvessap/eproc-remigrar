@@ -30,11 +30,12 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 ## Instalação
 
-1. Clique no ícone do Tampermonkey → **Criar novo script**
-2. Apague o conteúdo padrão e cole o conteúdo do arquivo `eproc-remigrar.user.js`
-3. Salve com **Ctrl + S**
-4. Acesse: `https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
-5. A HUD aparecerá automaticamente no canto inferior direito da tela
+👉 [Clique aqui para instalar o script](https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-remigrar/eproc-remigrar.user.js)
+
+O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **Instalar**.
+
+Após instalar, acesse a página do remigrar no eProc e a HUD aparecerá automaticamente no canto inferior direito:
+`https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
 
 ---
 
