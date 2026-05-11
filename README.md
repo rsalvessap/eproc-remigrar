@@ -34,7 +34,7 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 ### Método 1 — Instalação direta *(fora da rede corporativa)*
 
-👉 [Clique aqui para instalar o script](https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/eproc-remigrar/eproc-remigrar.user.js)
+👉 [Clique aqui para instalar o script](https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-remigrar/eproc-remigrar.user.js)
 
 O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **Instalar**.
 
