@@ -1,15 +1,17 @@
 // ==UserScript==
 // @name         eProc Remigrar Automation v2.0
-// @namespace    eproc-tjsp
+// @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
 // @version      2.0
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
-// @author       Helpdesk Automation
+// @author       rsalvessap
 // @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @run-at       document-idle
+// @downloadURL  https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-remigrar/eproc-remigrar.user.js
+// @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-remigrar/eproc-remigrar.user.js
 // ==/UserScript==
 
 (function () {
