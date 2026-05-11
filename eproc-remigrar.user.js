@@ -10,7 +10,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_listValues
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/eproc-remigrar/eproc-remigrar.user.js
+// @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/eproc-remigrar/eproc-remigrar.user.js
 // ==/UserScript==
 
 (function () {

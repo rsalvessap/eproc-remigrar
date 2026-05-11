@@ -30,7 +30,7 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 ## Instalação
 
-👉 [Clique aqui para instalar o script](https://github.com/rsalvessap/eproc-scripts-gerais/raw/master/eproc-remigrar/eproc-remigrar.user.js)
+👉 [Clique aqui para instalar o script](https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/eproc-remigrar/eproc-remigrar.user.js)
 
 O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **Instalar**.
 
