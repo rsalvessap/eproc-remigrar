@@ -1,9 +1,11 @@
 ﻿// ==UserScript==
-// @name         eProc Remigrar Automation v2.1
+// @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.1
+// @version      2.2
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
+// @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
 // @include      *://eproc*.tjsp.jus.br/eproc/controlador.php*
 // @include      *://*-1g-*.tjsp.jus.br/eproc/controlador.php*
 // @include      *://*-2g-*.tjsp.jus.br/eproc/controlador.php*
