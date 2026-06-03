@@ -2,6 +2,8 @@
 
 Userscript para automação em lote da remigração de processos por módulo no sistema eProc do TJSP. Processa os módulos **CAS**, **ZIP** e **Vídeos** de cada processo de forma sequencial, com suporte a checkpoint, múltiplas instâncias paralelas e exportação de resultados em CSV.
 
+**Versão atual:** 2.1
+
 ---
 
 ## Pré-requisitos
@@ -16,15 +18,6 @@ Isso é necessário para o Tampermonkey rodar o script sem bloqueio.
 
 - Vá em **Configurações → Extensões**
 - No canto superior direito, ative **Modo do desenvolvedor**
-
-### 3. Configurações do Tampermonkey
-
-- Clique no ícone do Tampermonkey → **Painel** → **Configurações**
-- Confirme que estas opções estão ativas:
-  - Permitir scripts de usuário
-  - Permitir acesso a abas
-  - Permitir requisições remotas
-  - Modo estrito desativado *(se existir no seu navegador)*
 
 ---
 
@@ -48,7 +41,9 @@ O Tampermonkey abrirá automaticamente a tela de confirmação — clique em **I
 6. Salve com `Ctrl + S`
 
 Após instalar, acesse a página do remigrar no eProc e a HUD aparecerá automaticamente no canto inferior direito:
-`https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
+
+- `https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
+- `https://eproc2g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo`
 
 ---
 
@@ -83,7 +78,23 @@ Para listas grandes, é possível dividir o trabalho entre várias abas abertas 
 
 Cada aba processará automaticamente sua fatia da lista sem conflito com as demais.
 
-### Controles disponíveis
+---
+
+## HUD
+
+A HUD exibe em tempo real:
+
+- Barra de progresso com percentual concluído
+- Contador de processos (concluídos / total)
+- Tempo decorrido e estimativa de conclusão
+- Taxa de velocidade (processos por minuto)
+- Log das últimas operações
+
+A HUD é arrastável e pode ser recolhida clicando no cabeçalho.
+
+---
+
+## Controles disponíveis
 
 | Botão | Ação |
 |---|---|
@@ -128,4 +139,5 @@ O script salva um **checkpoint** antes de cada submissão. Se o navegador fechar
 
 - O script aguarda até **2 minutos** pela resposta do servidor por submissão
 - Em caso de rate limit, aguarda **30 segundos** antes de tentar novamente
+- Compatível com eproc1g e eproc2g
 - Roles de acesso ao eProc devem permitir a ação de remigração
