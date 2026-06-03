@@ -1,14 +1,16 @@
-// ==UserScript==
-// @name         eProc Remigrar Automation v2.0
+﻿// ==UserScript==
+// @name         eProc Remigrar Automation v2.1
 // @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
-// @version      2.0
+// @version      2.1
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
+// @match        https://eproc2g.tjsp.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_listValues
+// @require      https://raw.githubusercontent.com/rsalvessap/eproc-scripts-gerais/master/shared/eproc-utils.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -18,6 +20,12 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // CONFIGURATION
     // ═══════════════════════════════════════════════════════════════════════════
+    // Ativar logs de debug apenas em desenvolvimento (false em produção)
+    const DEBUG = false;
+    const log  = (...a) => DEBUG && console.log('[Remigrar]', ...a);
+    const warn = (...a) => console.warn('[Remigrar]', ...a);
+    const err  = (...a) => console.error('[Remigrar]', ...a);
+
     const CONFIG = {
         // Storage keys
         CHECKPOINT_KEY: 'eproc_remigrar_checkpoint',
@@ -27,13 +35,15 @@
         // Processing parameters
         RESULTS_BUFFER_SIZE: 100,     // Export results every N cases
 
-        // Timing - reduced since we now poll for actual result
+        // Timing
         SUBMIT_DELAY_MS: 300,         // Small delay before submitting (form prep)
         RESULT_TIMEOUT_MS: 120000,    // Max wait for server response (2 minutes)
         RATE_LIMIT_DELAY_MS: 30000,   // Delay when rate-limited
 
-        // URLs
-        REMIGRAR_URL: 'https://eproc1g.tjsp.jus.br/eproc/controlador.php?acao=remigrar_processo'
+        // URL construída dinamicamente para funcionar em eproc1g e eproc2g
+        get REMIGRAR_URL() {
+            return `${window.location.origin}/eproc/controlador.php?acao=remigrar_processo`;
+        }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -47,8 +57,9 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════
+
+    // Hash simples para identificação de arquivo (primeiros 1000 chars)
     function hashString(str) {
-        // Simple hash for file identification (first 1000 chars)
         const sample = str.substring(0, 1000);
         let hash = 0;
         for (let i = 0; i < sample.length; i++) {
@@ -59,30 +70,32 @@
         return hash.toString(16);
     }
 
+    // Usa EprocUtils quando disponível, senão fallback local
+    const _utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
+
     function formatTime(ms) {
+        if (_utils) return _utils.formatTime(ms);
         if (ms < 60000) return `${Math.round(ms / 1000)}s`;
         if (ms < 3600000) return `${Math.round(ms / 60000)}min`;
-        const hours = Math.floor(ms / 3600000);
-        const mins = Math.round((ms % 3600000) / 60000);
-        return `${hours}h ${mins}min`;
+        const h = Math.floor(ms / 3600000);
+        const m = Math.round((ms % 3600000) / 60000);
+        return `${h}h ${m}min`;
     }
 
     function formatDateTime(timestamp) {
+        if (_utils) return _utils.formatDateTime(timestamp);
         return new Date(timestamp).toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
     }
 
+    // CSV com BOM para compatibilidade com Excel
     function downloadFile(content, filename, mimeType = 'text/csv;charset=utf-8') {
         const BOM = '\uFEFF';
         const blob = new Blob([BOM + content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
@@ -93,7 +106,7 @@
 
     function exportResults(results, instanceId = 1) {
         if (!results || results.length === 0) {
-            console.log('[Remigrar] No results to export');
+            log('No results to export');
             return 0;
         }
 
@@ -117,7 +130,7 @@
         const filename = `remigrar_${timestamp}_inst${instanceId}_${results.length}casos.csv`;
         downloadFile(csv, filename);
 
-        console.log(`[Remigrar] ✅ Exported ${results.length} results to ${filename}`);
+        log(`✅ Exported ${results.length} results to ${filename}`);
         return results.length;
     }
 
@@ -147,27 +160,27 @@
         },
 
         debugKeys() {
+            if (!DEBUG) return;
             try {
                 const keys = GM_listValues();
-                console.log('[Remigrar] 🛠️ STORAGE INSPECTOR: Found', keys.length, 'keys');
+                log('🛠️ STORAGE INSPECTOR: Found', keys.length, 'keys');
                 keys.forEach(k => {
                     const val = GM_getValue(k);
-                    const size = val ? val.length : 0;
-                    console.log(` - ${k} (${size} bytes)`);
+                    log(` - ${k} (${val ? val.length : 0} bytes)`);
                 });
             } catch (e) {
-                console.error('[Remigrar] Storage inspect failed:', e);
+                err('Storage inspect failed:', e);
             }
         },
 
         loadCheckpoint(instanceId = null) {
             try {
                 const key = this._getKey(CONFIG.CHECKPOINT_KEY, instanceId);
-                console.log(`[Remigrar] Attempting to load checkpoint from key: ${key}`);
+                log(`Loading checkpoint from: ${key}`);
                 const data = GM_getValue(key, 'null');
                 return JSON.parse(data);
             } catch (e) {
-                console.error('[Remigrar] Failed to load checkpoint:', e);
+                err('Failed to load checkpoint:', e);
                 return null;
             }
         },
@@ -219,7 +232,7 @@
             // Check immediately first
             const immediate = classifyResponse();
             if (immediate.type !== ResultType.EMPTY) {
-                console.log('[Remigrar] Result found immediately:', immediate);
+                log('Result found immediately:', immediate);
                 resolve(immediate);
                 return;
             }
@@ -229,14 +242,14 @@
                 const result = classifyResponse();
                 if (result.type !== ResultType.EMPTY) {
                     clearInterval(checkInterval);
-                    console.log('[Remigrar] Result found after', Date.now() - startTime, 'ms:', result);
+                    log('Result found after', Date.now() - startTime, 'ms:', result);
                     resolve(result);
                     return;
                 }
 
                 if (Date.now() - startTime > timeout) {
                     clearInterval(checkInterval);
-                    console.log('[Remigrar] Timeout waiting for result');
+                    log('Timeout waiting for result');
                     resolve({ type: ResultType.EMPTY, message: 'Timeout aguardando resposta' });
                 }
             }, 200); // Check every 200ms
@@ -255,7 +268,7 @@
             if (card.closest('.remigrar-hud')) continue; // Skip our HUD
             const items = card.querySelectorAll('li, .msg-text, p');
             const count = items.length || 1;
-            console.log('[Remigrar] SUCCESS detected:', count, 'items');
+            log('SUCCESS detected:', count, 'items');
             return { type: ResultType.SUCCESS, message: `${count} documento(s) remigrado(s)` };
         }
 
@@ -265,7 +278,7 @@
             if (card.closest('.remigrar-hud')) continue;
             const items = card.querySelectorAll('li, .msg-text, p');
             const count = items.length || 1;
-            console.log('[Remigrar] INFO detected:', count, 'items');
+            log('INFO detected:', count, 'items');
             return { type: ResultType.INFO, message: `${count} documento(s) já OK` };
         }
 
@@ -273,7 +286,7 @@
         const errorDiv = mainContent.querySelector('.infraExcecao, .msg-ERRO, .msgErro');
         if (errorDiv) {
             const msg = errorDiv.textContent.trim().substring(0, 100);
-            console.log('[Remigrar] ERROR detected:', msg);
+            log('ERROR detected:', msg);
             return { type: ResultType.ERROR, message: msg };
         }
 
@@ -400,10 +413,10 @@
                     this.chunkNumber = parsed.chunkNumber || 1;
                     this.totalExported = parsed.totalExported || 0;
                     this.instanceId = parsed.instanceId || 1;
-                    console.log(`[Remigrar] Loaded ${this.buffer.length} buffered results from storage (${key})`);
+                    log(`Loaded ${this.buffer.length} buffered results from storage (${key})`);
                 }
             } catch (e) {
-                console.error('[Remigrar] Failed to load results buffer:', e);
+                err('Failed to load results buffer:', e);
             }
         },
 
@@ -438,7 +451,7 @@
         add(entry) {
             this.buffer.push(entry);
             this._save();  // Persist immediately
-            console.log(`[Remigrar] Added result for ${entry.caseNumber}, buffer size: ${this.buffer.length}`);
+            log(`Added result for ${entry.caseNumber}, buffer size: ${this.buffer.length}`);
 
             if (this.buffer.length >= CONFIG.RESULTS_BUFFER_SIZE) {
                 this.flush();
@@ -447,7 +460,7 @@
 
         flush() {
             if (this.buffer.length === 0) {
-                console.log('[Remigrar] Buffer empty, nothing to export');
+                log('Buffer empty, nothing to export');
                 return 0;
             }
 
@@ -477,7 +490,7 @@
             this.buffer = [];
             this._save();  // Persist the cleared buffer
 
-            console.log(`[Remigrar] ✅ Exported chunk ${this.chunkNumber - 1} (${exportedCount} results)`);
+            log(`✅ Exported chunk ${this.chunkNumber - 1} (${exportedCount} results)`);
             return exportedCount;
         },
 
@@ -488,7 +501,7 @@
             this.totalExported = 0;
             const key = Storage._getKey(CONFIG.RESULTS_KEY, this.instanceId);
             GM_deleteValue(key);
-            console.log('[Remigrar] Results buffer cleared');
+            log('Results buffer cleared');
         },
 
         getStats() {
@@ -556,7 +569,7 @@
             this.currentCheckpoint = checkpoint;
             this.isRunning = true;
             this.isPaused = false;
-            console.log('[Remigrar] Resuming from checkpoint:', checkpoint);
+            log('Resuming from checkpoint:', checkpoint);
         },
 
         pause() {
@@ -628,17 +641,17 @@
 
         async processNext() {
             // Log entry to debug "going nowhere" issues
-            console.log(`[Remigrar] processNext called. Running: ${this.isRunning}, Paused: ${this.isPaused}`);
+            log(`processNext called. Running: ${this.isRunning}, Paused: ${this.isPaused}`);
 
             // Double check session ID integrity
             const currentSession = Session.getId();
             if (this.currentCheckpoint && currentSession && this.currentCheckpoint.instanceId != currentSession) {
-                console.error(`[Remigrar] Session mismatch! Stored: ${this.currentCheckpoint.instanceId} vs Session: ${currentSession}`);
+                err(`Session mismatch! Stored: ${this.currentCheckpoint.instanceId} vs Session: ${currentSession}`);
                 // This shouldn't happen with the new isolation, but good to catch
             }
 
             if (!this.isRunning || this.isPaused) {
-                console.log('[Remigrar] processNext aborted (not running or paused)');
+                log('processNext aborted (not running or paused)');
                 return;
             }
 
@@ -677,7 +690,7 @@
             }
 
             if (!caseNumber) {
-                console.error('[Remigrar] No case number available at index:', cp.currentIndex);
+                err('No case number available at index:', cp.currentIndex);
                 this.updateStatus('⚠️ Erro: fila de casos não disponível');
                 this.isRunning = false;
                 return;
@@ -695,7 +708,7 @@
             const button = document.querySelector('button[type="submit"].infraButton');
 
             if (!input || !select || !button) {
-                console.log('[Remigrar] Form elements not found (Input:', !!input, 'Select:', !!select, 'Button:', !!button, '), redirecting to fresh page...');
+                log('Form elements not found — Input:', !!input, 'Select:', !!select, 'Button:', !!button, '— redirecting...');
                 // Save state so we resume immediately after load
                 cp.currentCaseNumber = caseNumber;
                 cp.isActive = true;
@@ -721,13 +734,13 @@
             Storage.saveCheckpoint(cp);
 
             // 6. Submit after brief delay
-            console.log(`[Remigrar] Submitting: ${caseNumber} / ${module}`);
+            log(`Submitting: ${caseNumber} / ${module}`);
             setTimeout(() => {
                 // Determine if we need to clean up first (try to find and click 'Limpar' if exists? No, relying on overwrite)
 
                 // Watchdog: If page doesn't unload/reload within 10 seconds, assume stuck and retry
                 const watchdogId = setTimeout(() => {
-                    console.warn('[Remigrar] ⚠️ Submission watchdog triggered - page did not reload.');
+                    warn('⚠️ Submission watchdog triggered - page did not reload.');
 
                     // Revert state to retry this step
                     const currentCp = Storage.loadCheckpoint();
@@ -735,7 +748,7 @@
                         currentCp.awaitingResult = false; // Cancel expectation of result since we failed to submit
                         Storage.saveCheckpoint(currentCp);
 
-                        console.log('[Remigrar] Redirecting to clean page to retry...');
+                        log('Redirecting to clean page to retry...');
                         window.location.href = CONFIG.REMIGRAR_URL;
                     }
                 }, 10000); // 10 seconds timeout
@@ -745,7 +758,7 @@
                     button.click();
                     // If successful, page unloads and watchdog is killed by browser
                 } catch (e) {
-                    console.error('[Remigrar] Submit click failed:', e);
+                    err('Submit click failed:', e);
                     // Watchdog will catch this if logic flow continues
                 }
             }, CONFIG.SUBMIT_DELAY_MS);
@@ -757,16 +770,16 @@
                 if (!cp || !cp.awaitingResult) return false;
 
                 const caseNumber = cp.currentCaseNumber;
-                console.log(`[Remigrar] Waiting for result: ${caseNumber} (${cp.currentStep})`);
+                log(`Waiting for result: ${caseNumber} (${cp.currentStep})`);
                 this.updateStatus?.(`⏳ ${caseNumber} (${cp.currentStep.toUpperCase()})`);
 
                 // Wait for result to appear
                 const result = await waitForResult(CONFIG.RESULT_TIMEOUT_MS);
-                console.log('[Remigrar] Got result:', result);
+                log('Got result:', result);
 
                 // Handle rate limiting
                 if (result.type === ResultType.RATE_LIMITED) {
-                    console.warn('[Remigrar] Rate limited, waiting...');
+                    warn('Rate limited, waiting...');
                     this.updateStatus?.(`⚠️ Rate limited - aguardando ${CONFIG.RATE_LIMIT_DELAY_MS / 1000}s`);
                     setTimeout(() => {
                         cp.awaitingResult = false;
@@ -778,20 +791,20 @@
                 }
 
                 // Store result for current step
-                console.log('[Remigrar] Storing result for step:', cp.currentStep);
+                log('Storing result for step:', cp.currentStep);
                 if (!cp.results) cp.results = {};
 
                 if (cp.currentStep === 'cas') {
                     cp.results.casResult = result;
                     cp.currentStep = 'zip';
-                    console.log('[Remigrar] Advanced to ZIP');
+                    log('Advanced to ZIP');
                 } else if (cp.currentStep === 'zip') {
                     cp.results.zipResult = result;
                     cp.currentStep = 'videos';
-                    console.log('[Remigrar] Advanced to VIDEOS');
+                    log('Advanced to VIDEOS');
                 } else {
                     cp.results.videosResult = result;
-                    console.log('[Remigrar] Finished case');
+                    log('Finished case');
 
                     // All steps done - save entry
                     const entry = {
@@ -809,7 +822,7 @@
 
                     if (!cp.completedResults) cp.completedResults = [];
                     cp.completedResults.push(entry);
-                    console.log(`[Remigrar] ✅ ${caseNumber} done. Total: ${cp.completedResults.length}`);
+                    log(`✅ ${caseNumber} done. Total: ${cp.completedResults.length}`);
 
                     // Move to next case
                     cp.currentIndex++;
@@ -817,25 +830,25 @@
                     cp.results = {};
                 }
 
-                console.log('[Remigrar] Saving checkpoint...');
+                log('Saving checkpoint...');
                 cp.awaitingResult = false;
                 Storage.saveCheckpoint(cp);
                 this.currentCheckpoint = cp;
-                console.log('[Remigrar] Checkpoint saved.');
+                log('Checkpoint saved.');
 
                 // Continue immediately on the same page
-                console.log('[Remigrar] handleResult calling processNext(). isRunning:', this.isRunning);
+                log('handleResult calling processNext(). isRunning:', this.isRunning);
 
                 // Critical safety check
                 if (!this.isRunning) {
-                    console.warn('[Remigrar] handleResult detected stopped state, forcing resume');
+                    warn('handleResult detected stopped state, forcing resume');
                     this.isRunning = true;
                 }
 
                 this.processNext();
                 return true;
             } catch (error) {
-                console.error('[Remigrar] CRITICAL ERROR in handleResult:', error);
+                err('CRITICAL ERROR in handleResult:', error);
                 this.updateStatus('❌ Erro no processamento (ver console)');
                 return false;
             }
@@ -1250,6 +1263,10 @@
                             <span class="status-label">ETA:</span>
                             <span class="status-value" id="status-eta">-</span>
                         </div>
+                        <div class="status-row">
+                            <span class="status-label">Velocidade:</span>
+                            <span class="status-value" id="status-rate">-</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1301,6 +1318,7 @@
             statusCase: hud.querySelector('#status-case'),
             statusStep: hud.querySelector('#status-step'),
             statusEta: hud.querySelector('#status-eta'),
+            statusRate: hud.querySelector('#status-rate'),
             completedCount: hud.querySelector('#completed-count'),
             exportBtn: hud.querySelector('#remigrar-export-now'),
             resumeBanner: hud.querySelector('#remigrar-resume-banner')
@@ -1319,7 +1337,7 @@
             const cp = Storage.loadCheckpoint(targetId);
 
             // Console log to debug what we are finding
-            console.log(`[Remigrar] Checking resume for ID ${targetId}:`, cp ? 'Found' : 'Null');
+            log(`Checking resume for ID ${targetId}:`, cp ? 'Found' : 'Null');
 
             // Update completed count from this potential checkpoint
             if (cp && cp.completedResults) {
@@ -1347,7 +1365,7 @@
         if (activeSessionId) {
             elements.instanceId.value = activeSessionId;
             elements.instanceId.disabled = true; // Lock it if session is active
-            console.log('[Remigrar] Locked to Session Instance:', activeSessionId);
+            log('Locked to Session Instance:', activeSessionId);
 
             // Also try to restore totalInstances from checkpoint if possible
             const cp = Storage.loadCheckpoint(activeSessionId);
@@ -1399,6 +1417,12 @@
             elements.statusStep.textContent = progress.step || '-';
             elements.statusEta.textContent = progress.eta || '-';
             elements.completedCount.textContent = progress.completed || 0;
+            if (elements.statusRate) {
+                const rate = _utils
+                    ? _utils.calcRate(progress.completed || 0, Automation.currentCheckpoint?.startedAt || Date.now())
+                    : '-';
+                elements.statusRate.textContent = rate;
+            }
         }
 
         function updateStatus(message) {
@@ -1448,7 +1472,7 @@
                 // Check if we have caseQueue in checkpoint (new format)
                 if (checkpoint.caseQueue && checkpoint.caseQueue.length > 0) {
                     // Can resume directly without file
-                    console.log('[Remigrar] Resuming directly from stored queue');
+                    log('Resuming directly from stored queue');
                     elements.instanceId.value = checkpoint.instanceId;
                     elements.totalInstances.value = checkpoint.totalInstances;
                     updateSliceInfo();
@@ -1482,10 +1506,14 @@
         // ═══════════════════════════════════════════════════════════════════════
 
         // Toggle collapse
-        elements.toggle.addEventListener('click', () => {
-            elements.body.classList.toggle('collapsed');
-            elements.toggle.textContent = elements.body.classList.contains('collapsed') ? '+' : '−';
-        });
+        if (_utils) {
+            _utils.makeCollapsible(elements.toggle, elements.body);
+        } else {
+            elements.toggle.addEventListener('click', () => {
+                elements.body.classList.toggle('collapsed');
+                elements.toggle.textContent = elements.body.classList.contains('collapsed') ? '+' : '−';
+            });
+        }
 
         // File selection
         elements.fileInput.addEventListener('change', async (e) => {
@@ -1529,7 +1557,7 @@
 
                 updateStatus('✅ Arquivo carregado');
             } catch (err) {
-                console.error('[Remigrar] File load error:', err);
+                err('File load error:', err);
                 updateStatus('❌ Erro ao carregar arquivo');
             }
         });
@@ -1657,29 +1685,23 @@
         Automation.onStatusUpdate = updateStatus;
 
         // Make draggable
-        let isDragging = false;
-        let offsetX, offsetY;
         const header = hud.querySelector('#remigrar-hud-header');
-
-        header.addEventListener('mousedown', (e) => {
-            if (e.target === elements.toggle) return;
-            isDragging = true;
-            offsetX = e.clientX - hud.offsetLeft;
-            offsetY = e.clientY - hud.offsetTop;
-            hud.style.transition = 'none';
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            hud.style.left = (e.clientX - offsetX) + 'px';
-            hud.style.top = (e.clientY - offsetY) + 'px';
-            hud.style.right = 'auto';
-            hud.style.bottom = 'auto';
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
+        if (_utils) {
+            _utils.makeDraggable(hud, header, elements.toggle);
+        } else {
+            let isDragging = false, ox = 0, oy = 0;
+            header.addEventListener('mousedown', e => {
+                if (e.target === elements.toggle) return;
+                isDragging = true; ox = e.clientX - hud.offsetLeft; oy = e.clientY - hud.offsetTop;
+                hud.style.transition = 'none';
+            });
+            document.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+                hud.style.left = (e.clientX - ox) + 'px'; hud.style.top = (e.clientY - oy) + 'px';
+                hud.style.right = 'auto'; hud.style.bottom = 'auto';
+            });
+            document.addEventListener('mouseup', () => { isDragging = false; });
+        }
 
         // ═══════════════════════════════════════════════════════════════════════
         // CHECK FOR EXISTING CHECKPOINT
@@ -1699,9 +1721,9 @@
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════════════════
 
-    console.log('[Remigrar] ========== SCRIPT STARTING ==========');
-    console.log('[Remigrar] URL:', window.location.href);
-    console.log('[Remigrar] isRemigrarPage:', isRemigrarPage());
+    log('========== SCRIPT STARTING ==========');
+    log('URL:', window.location.href);
+    log('isRemigrarPage:', isRemigrarPage());
 
     // Debug storage immediately
     Storage.debugKeys();
@@ -1715,7 +1737,7 @@
     // we must aggressively hunt for the correct checkpoint to latch onto.
     const isResultPage = window.location.search.includes('remigrar_processo_modulo');
     if (isResultPage && !checkpoint) {
-        console.warn('[Remigrar] Result page detected but no checkpoint/session found! attempting auto-discovery...');
+        warn('Result page detected but no checkpoint/session found! attempting auto-discovery...');
 
         const keys = GM_listValues();
         for (const key of keys) {
@@ -1723,7 +1745,7 @@
                 const possibleCp = JSON.parse(GM_getValue(key));
                 // If this checkpoint is waiting for a result AND isActive, it's our candidate
                 if (possibleCp && possibleCp.awaitingResult) {
-                    console.log(`[Remigrar] 🎯 Found orphaned active checkpoint: ${key} (Instance ${possibleCp.instanceId})`);
+                    log(`🎯 Found orphaned active checkpoint: ${key} (Instance ${possibleCp.instanceId})`);
 
                     // BIND SESSION immediately so subsequent calls work
                     Session.setId(possibleCp.instanceId);
@@ -1734,7 +1756,7 @@
         }
     }
 
-    console.log('[Remigrar] Checkpoint (final):', checkpoint ? {
+    log('Checkpoint (final):', checkpoint ? {
         awaitingResult: checkpoint.awaitingResult,
         isActive: checkpoint.isActive,
         currentStep: checkpoint.currentStep,
@@ -1757,10 +1779,10 @@
     const isResultPageFullCheck = window.location.search.includes('remigrar_processo_modulo');
 
     if (shouldShowHUD) {
-        console.log('[Remigrar] Initializing HUD (Page match:', isRemigrarPage(), 'Checkpoint:', !!checkpoint, ')');
+        log('Initializing HUD — Page:', isRemigrarPage(), 'Checkpoint:', !!checkpoint);
         // Create HUD first - this connects callback handlers
         const hudControls = createHUD();
-        console.log('[eProc Remigrar v2.0] HUD initialized');
+        console.log('[eProc Remigrar v2.1] HUD initialized');
 
         // Now handle pending automation (after HUD callbacks are connected)
         if (checkpoint) {
@@ -1770,7 +1792,7 @@
 
             if (checkpoint.awaitingResult || forceResultProcessing) {
                 // We just came back from a submission - handle result immediately
-                console.log('[Remigrar] Processing result for:', checkpoint.currentCaseNumber);
+                log('Processing result for:', checkpoint.currentCaseNumber);
                 hudControls.setRunningState(true);
                 Automation.isRunning = true; // CRITICAL FIX: execution cannot proceed without this
 
@@ -1786,7 +1808,7 @@
                 }, 500);
             } else if (checkpoint.isActive && !checkpoint.awaitingResult) {
                 // We're continuing automation after handling a result
-                console.log('[Remigrar] Continuing automation, step:', checkpoint.currentStep, 'case:', checkpoint.currentCaseNumber);
+                log('Continuing automation, step:', checkpoint.currentStep, 'case:', checkpoint.currentCaseNumber);
                 hudControls.setRunningState(true);
                 Automation.isRunning = true; // CRITICAL FIX
                 hudControls.updateStatus(`🔄 Continuando: ${checkpoint.currentCaseNumber || '...'} (${checkpoint.currentStep?.toUpperCase()})`);
