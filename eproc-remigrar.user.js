@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.2
+// @version      2.3
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
@@ -891,35 +891,25 @@
         hud.innerHTML = `
             <style>
                 #remigrar-hud {
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    width: 430px;
+                    display: block;
+                    margin: 0 0 16px 0;
                     background: #ffffff;
-                    border: 1px solid #b0b8c4;
+                    border: 1px solid #ccc;
                     border-radius: 4px;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-                    font-family: Arial, 'Segoe UI', sans-serif;
+                    font-family: Arial, sans-serif;
                     font-size: 13px;
                     color: #333333;
-                    z-index: 99999;
-                    overflow: hidden;
                 }
                 #remigrar-hud-header {
-                    background: #1a3a6c;
+                    background: #0d47a1;
                     padding: 10px 14px;
                     font-weight: bold;
                     font-size: 13px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    cursor: move;
                     color: #ffffff;
-                }
-                #remigrar-hud-header span {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
+                    border-radius: 3px 3px 0 0;
                 }
                 #remigrar-hud-toggle {
                     background: rgba(255,255,255,0.2);
@@ -934,37 +924,52 @@
                 }
                 #remigrar-hud-body {
                     padding: 12px;
-                    background: #f5f7fa;
+                    background: #e3f2fd;
                 }
                 #remigrar-hud-body.collapsed {
                     display: none;
                 }
+                #remigrar-columns {
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
+                }
+                #remigrar-left {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    min-width: 0;
+                }
+                #remigrar-right {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    min-width: 0;
+                }
                 .remigrar-section {
                     background: #ffffff;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                     border-radius: 3px;
                     padding: 10px;
-                    margin-bottom: 8px;
-                }
-                .remigrar-section:last-child {
-                    margin-bottom: 0;
                 }
                 .remigrar-section-title {
                     font-weight: bold;
                     margin-bottom: 8px;
-                    color: #1a3a6c;
+                    color: #0d47a1;
                     font-size: 11px;
                     text-transform: uppercase;
                     letter-spacing: 0.3px;
-                    border-bottom: 1px solid #e0e4ea;
+                    border-bottom: 1px solid #ccc;
                     padding-bottom: 5px;
                 }
                 .remigrar-file-info {
-                    background: #f0f2f5;
+                    background: #f5f5f5;
                     padding: 8px 10px;
                     border-radius: 3px;
                     margin-bottom: 8px;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                     font-size: 12px;
                     color: #444444;
                 }
@@ -979,7 +984,7 @@
                     display: block;
                     width: 100%;
                     padding: 8px;
-                    background: #1a3a6c;
+                    background: #0d47a1;
                     border: none;
                     border-radius: 3px;
                     color: white;
@@ -990,7 +995,7 @@
                     box-sizing: border-box;
                 }
                 .remigrar-file-btn:hover {
-                    background: #153060;
+                    background: #0a3880;
                 }
                 .remigrar-instance-row {
                     display: flex;
@@ -1010,7 +1015,7 @@
                     width: 100%;
                     padding: 6px;
                     background: #ffffff;
-                    border: 1px solid #aab0bb;
+                    border: 1px solid #aaa;
                     border-radius: 3px;
                     color: #333333;
                     font-size: 13px;
@@ -1018,13 +1023,13 @@
                     box-sizing: border-box;
                 }
                 .remigrar-slice-info {
-                    background: #f0f2f5;
+                    background: #f5f5f5;
                     padding: 6px 8px;
                     border-radius: 3px;
                     font-size: 12px;
                     text-align: center;
                     color: #555555;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                 }
                 #remigrar-controls {
                     display: flex;
@@ -1045,7 +1050,7 @@
                     cursor: not-allowed;
                 }
                 .remigrar-btn-primary {
-                    background: #2e7031;
+                    background: #2e7d32;
                     color: white;
                 }
                 .remigrar-btn-primary:hover:not(:disabled) {
@@ -1059,11 +1064,11 @@
                     background: #a05200;
                 }
                 .remigrar-btn-danger {
-                    background: #b71c1c;
+                    background: #c62828;
                     color: white;
                 }
                 .remigrar-btn-danger:hover:not(:disabled) {
-                    background: #9a1717;
+                    background: #a31f1f;
                 }
                 .remigrar-btn-secondary {
                     background: #546e7a;
@@ -1078,15 +1083,15 @@
                 #remigrar-progress-bar {
                     width: 100%;
                     height: 18px;
-                    background: #e0e4ea;
+                    background: #e0e0e0;
                     border-radius: 2px;
                     overflow: hidden;
                     position: relative;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                 }
                 #remigrar-progress-fill {
                     height: 100%;
-                    background: #2e7031;
+                    background: #2e7d32;
                     transition: width 0.3s ease;
                 }
                 #remigrar-progress-text {
@@ -1099,12 +1104,12 @@
                     color: #333333;
                 }
                 #remigrar-status {
-                    background: #f5f7fa;
+                    background: #f5f5f5;
                     padding: 8px 10px;
                     border-radius: 3px;
                     font-size: 12px;
                     line-height: 1.7;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                 }
                 .status-row {
                     display: flex;
@@ -1118,11 +1123,11 @@
                     color: #222222;
                 }
                 #remigrar-export-stats {
-                    background: #e8f0fb;
+                    background: #e3f2fd;
                     padding: 8px 10px;
                     border-radius: 3px;
                     font-size: 12px;
-                    border: 1px solid #c8d0db;
+                    border: 1px solid #ccc;
                 }
                 .processing-indicator {
                     animation: pulse 1.5s infinite;
@@ -1159,7 +1164,7 @@
                     width: 100%;
                     height: 120px;
                     background: #ffffff;
-                    border: 1px solid #aab0bb;
+                    border: 1px solid #aaa;
                     border-radius: 3px;
                     color: #333333;
                     padding: 8px;
@@ -1171,8 +1176,8 @@
                 }
                 #remigrar-manual-input:focus {
                     outline: none;
-                    border-color: #1a3a6c;
-                    box-shadow: 0 0 0 2px rgba(26,58,108,0.15);
+                    border-color: #0d47a1;
+                    box-shadow: 0 0 0 2px rgba(13,71,161,0.15);
                 }
                 .mode-hidden {
                     display: none !important;
@@ -1194,7 +1199,7 @@
                 }
                 .input-count-badge {
                     float: right;
-                    background: #e0e4ea;
+                    background: #e3f2fd;
                     padding: 1px 6px;
                     border-radius: 10px;
                     font-size: 10px;
@@ -1211,107 +1216,122 @@
             </div>
             <div id="remigrar-hud-body">
                 <div id="remigrar-resume-banner" style="display: none;"></div>
+                <div id="remigrar-columns">
 
-                <!-- CASUAL MODE CONTAINER -->
-                <div id="remigrar-casual-container">
-                    <div class="remigrar-section">
-                        <div class="remigrar-section-title">
-                            📝 Entrada Manual
-                            <span id="remigrar-manual-count" class="input-count-badge">0</span>
-                        </div>
-                        <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
-                        <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left; color:#666666; padding:5px;">
-                            Cole a lista para iniciar
-                        </div>
-                    </div>
-                </div>
+                    <!-- LEFT COLUMN: Input -->
+                    <div id="remigrar-left">
 
-                <!-- BULK MODE CONTAINER -->
-                <div id="remigrar-bulk-container" class="mode-hidden">
-                    <div class="remigrar-section">
-                        <div class="remigrar-section-title">📁 Arquivo de Entrada</div>
-                        <div id="remigrar-file-info" class="remigrar-file-info empty">
-                            Nenhum arquivo selecionado
-                        </div>
-                        <input type="file" id="remigrar-file-input" accept=".txt,.csv">
-                        <label for="remigrar-file-input" class="remigrar-file-btn">📂 Selecionar Arquivo</label>
-                    </div>
-
-                    <div class="remigrar-section">
-                        <div class="remigrar-section-title">🖥️ Multi-Instância</div>
-                        <div class="remigrar-instance-row">
-                            <div class="remigrar-instance-group">
-                                <label>Esta Instância</label>
-                                <input type="number" id="remigrar-instance-id" min="1" value="1">
-                            </div>
-                            <div class="remigrar-instance-group">
-                                <label>Total de Instâncias</label>
-                                <input type="number" id="remigrar-total-instances" min="1" value="1">
+                        <!-- CASUAL MODE CONTAINER -->
+                        <div id="remigrar-casual-container">
+                            <div class="remigrar-section">
+                                <div class="remigrar-section-title">
+                                    📝 Entrada Manual
+                                    <span id="remigrar-manual-count" class="input-count-badge">0</span>
+                                </div>
+                                <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
+                                <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left; color:#666666; padding:5px;">
+                                    Cole a lista para iniciar
+                                </div>
                             </div>
                         </div>
-                        <div id="remigrar-slice-info" class="remigrar-slice-info">
-                            Carregue um arquivo para ver a distribuição
-                        </div>
-                    </div>
-                </div>
 
-                <div class="remigrar-section">
-                    <div class="remigrar-section-title">🎮 Controles</div>
-                    <div id="remigrar-controls">
-                        <button id="remigrar-start" class="remigrar-btn remigrar-btn-primary" disabled>▶ Iniciar</button>
-                        <button id="remigrar-pause" class="remigrar-btn remigrar-btn-warning" disabled>⏸ Pausar</button>
-                        <button id="remigrar-stop" class="remigrar-btn remigrar-btn-danger" disabled>⏹ Parar</button>
-                    </div>
-                </div>
+                        <!-- BULK MODE CONTAINER -->
+                        <div id="remigrar-bulk-container" class="mode-hidden">
+                            <div class="remigrar-section">
+                                <div class="remigrar-section-title">📁 Arquivo de Entrada</div>
+                                <div id="remigrar-file-info" class="remigrar-file-info empty">
+                                    Nenhum arquivo selecionado
+                                </div>
+                                <input type="file" id="remigrar-file-input" accept=".txt,.csv">
+                                <label for="remigrar-file-input" class="remigrar-file-btn">📂 Selecionar Arquivo</label>
+                            </div>
 
-                <div class="remigrar-section">
-                    <div class="remigrar-section-title">📊 Progresso</div>
-                    <div id="remigrar-progress-container">
-                        <div id="remigrar-progress-bar">
-                            <div id="remigrar-progress-fill" style="width: 0%"></div>
-                            <span id="remigrar-progress-text">0%</span>
+                            <div class="remigrar-section">
+                                <div class="remigrar-section-title">🖥️ Multi-Instância</div>
+                                <div class="remigrar-instance-row">
+                                    <div class="remigrar-instance-group">
+                                        <label>Esta Instância</label>
+                                        <input type="number" id="remigrar-instance-id" min="1" value="1">
+                                    </div>
+                                    <div class="remigrar-instance-group">
+                                        <label>Total de Instâncias</label>
+                                        <input type="number" id="remigrar-total-instances" min="1" value="1">
+                                    </div>
+                                </div>
+                                <div id="remigrar-slice-info" class="remigrar-slice-info">
+                                    Carregue um arquivo para ver a distribuição
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div id="remigrar-status">
-                        <div class="status-row">
-                            <span class="status-label">Status:</span>
-                            <span class="status-value" id="status-state">Aguardando...</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="status-label">Caso Atual:</span>
-                            <span class="status-value" id="status-case">-</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="status-label">Etapa:</span>
-                            <span class="status-value" id="status-step">-</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="status-label">ETA:</span>
-                            <span class="status-value" id="status-eta">-</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="status-label">Velocidade:</span>
-                            <span class="status-value" id="status-rate">-</span>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="remigrar-section">
-                    <div class="remigrar-section-title">� Resultados</div>
-                    <div id="remigrar-export-stats">
-                        <div class="status-row">
-                            <span class="status-label">Casos Completos:</span>
-                            <span class="status-value" id="completed-count">0</span>
+                    <!-- RIGHT COLUMN: Controls + Progress + Results -->
+                    <div id="remigrar-right">
+                        <div class="remigrar-section">
+                            <div class="remigrar-section-title">🎮 Controles</div>
+                            <div id="remigrar-controls">
+                                <button id="remigrar-start" class="remigrar-btn remigrar-btn-primary" disabled>▶ Iniciar</button>
+                                <button id="remigrar-pause" class="remigrar-btn remigrar-btn-warning" disabled>⏸ Pausar</button>
+                                <button id="remigrar-stop" class="remigrar-btn remigrar-btn-danger" disabled>⏹ Parar</button>
+                            </div>
+                        </div>
+
+                        <div class="remigrar-section">
+                            <div class="remigrar-section-title">📊 Progresso</div>
+                            <div id="remigrar-progress-container">
+                                <div id="remigrar-progress-bar">
+                                    <div id="remigrar-progress-fill" style="width: 0%"></div>
+                                    <span id="remigrar-progress-text">0%</span>
+                                </div>
+                            </div>
+                            <div id="remigrar-status">
+                                <div class="status-row">
+                                    <span class="status-label">Status:</span>
+                                    <span class="status-value" id="status-state">Aguardando...</span>
+                                </div>
+                                <div class="status-row">
+                                    <span class="status-label">Caso Atual:</span>
+                                    <span class="status-value" id="status-case">-</span>
+                                </div>
+                                <div class="status-row">
+                                    <span class="status-label">Etapa:</span>
+                                    <span class="status-value" id="status-step">-</span>
+                                </div>
+                                <div class="status-row">
+                                    <span class="status-label">ETA:</span>
+                                    <span class="status-value" id="status-eta">-</span>
+                                </div>
+                                <div class="status-row">
+                                    <span class="status-label">Velocidade:</span>
+                                    <span class="status-value" id="status-rate">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="remigrar-section">
+                            <div class="remigrar-section-title">📋 Resultados</div>
+                            <div id="remigrar-export-stats">
+                                <div class="status-row">
+                                    <span class="status-label">Casos Completos:</span>
+                                    <span class="status-value" id="completed-count">0</span>
+                                </div>
+                            </div>
+                            <button id="remigrar-export-now" class="remigrar-btn remigrar-btn-secondary" style="margin-top: 8px; width: 100%;">
+                                📥 Exportar Agora
+                            </button>
                         </div>
                     </div>
-                    <button id="remigrar-export-now" class="remigrar-btn remigrar-btn-secondary" style="margin-top: 10px; width: 100%;">
-                        📥 Exportar Agora
-                    </button>
+
                 </div>
             </div>
         `;
 
-        document.body.appendChild(hud);
+        const container = document.querySelector('#divInfraAreaTelaD')
+            || document.querySelector('#divInfraConteudoForm')
+            || document.querySelector('#divInfraConteudo')
+            || document.querySelector('.infraAreaTelaD')
+            || document.body;
+        container.insertBefore(hud, container.firstChild);
 
         // ═══════════════════════════════════════════════════════════════════════
         // HUD ELEMENTS
@@ -1709,25 +1729,6 @@
         // Connect automation callbacks
         Automation.onProgressUpdate = updateProgress;
         Automation.onStatusUpdate = updateStatus;
-
-        // Make draggable
-        const header = hud.querySelector('#remigrar-hud-header');
-        if (_utils) {
-            _utils.makeDraggable(hud, header, elements.toggle);
-        } else {
-            let isDragging = false, ox = 0, oy = 0;
-            header.addEventListener('mousedown', e => {
-                if (e.target === elements.toggle) return;
-                isDragging = true; ox = e.clientX - hud.offsetLeft; oy = e.clientY - hud.offsetTop;
-                hud.style.transition = 'none';
-            });
-            document.addEventListener('mousemove', e => {
-                if (!isDragging) return;
-                hud.style.left = (e.clientX - ox) + 'px'; hud.style.top = (e.clientY - oy) + 'px';
-                hud.style.right = 'auto'; hud.style.bottom = 'auto';
-            });
-            document.addEventListener('mouseup', () => { isDragging = false; });
-        }
 
         // ═══════════════════════════════════════════════════════════════════════
         // CHECK FOR EXISTING CHECKPOINT
