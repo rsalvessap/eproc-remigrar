@@ -1,6 +1,6 @@
 ﻿// ==UserScript==
 // @name         eProc Remigrar Automation v2.1
-// @namespace    https://github.com/rsalvessap/eproc-scripts-gerais
+// @namespace    https://github.com/rsalvessap/eproc-remigrar
 // @version      2.1
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
