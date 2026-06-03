@@ -4,8 +4,10 @@
 // @version      2.1
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
-// @match        https://eproc1g.tjsp.jus.br/eproc/controlador.php*
-// @match        https://eproc2g.tjsp.jus.br/eproc/controlador.php*
+// @include      *://eproc*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://*-1g-*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://*-2g-*.tjsp.jus.br/eproc/controlador.php*
+// @include      *://sso-*.tjsc.jus.br/eproc/controlador.php*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
