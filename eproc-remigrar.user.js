@@ -890,75 +890,83 @@
                     position: fixed;
                     bottom: 20px;
                     right: 20px;
-                    width: 420px;
-                    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                    border: 1px solid #4a5568;
-                    border-radius: 12px;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-                    font-family: 'Segoe UI', Tahoma, sans-serif;
+                    width: 430px;
+                    background: #ffffff;
+                    border: 1px solid #b0b8c4;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+                    font-family: Arial, 'Segoe UI', sans-serif;
                     font-size: 13px;
-                    color: #e2e8f0;
+                    color: #333333;
                     z-index: 99999;
                     overflow: hidden;
                 }
                 #remigrar-hud-header {
-                    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-                    padding: 12px 15px;
-                    font-weight: 600;
-                    font-size: 14px;
+                    background: #1a3a6c;
+                    padding: 10px 14px;
+                    font-weight: bold;
+                    font-size: 13px;
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     cursor: move;
+                    color: #ffffff;
                 }
                 #remigrar-hud-header span {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: 6px;
                 }
                 #remigrar-hud-toggle {
                     background: rgba(255,255,255,0.2);
-                    border: none;
+                    border: 1px solid rgba(255,255,255,0.4);
                     color: white;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 4px;
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 3px;
                     cursor: pointer;
                     font-size: 14px;
+                    line-height: 1;
                 }
                 #remigrar-hud-body {
-                    padding: 15px;
+                    padding: 12px;
+                    background: #f5f7fa;
                 }
                 #remigrar-hud-body.collapsed {
                     display: none;
                 }
                 .remigrar-section {
-                    margin-bottom: 15px;
-                    padding-bottom: 15px;
-                    border-bottom: 1px solid #4a5568;
+                    background: #ffffff;
+                    border: 1px solid #c8d0db;
+                    border-radius: 3px;
+                    padding: 10px;
+                    margin-bottom: 8px;
                 }
                 .remigrar-section:last-child {
                     margin-bottom: 0;
-                    padding-bottom: 0;
-                    border-bottom: none;
                 }
                 .remigrar-section-title {
-                    font-weight: 600;
-                    margin-bottom: 10px;
-                    color: #a0aec0;
+                    font-weight: bold;
+                    margin-bottom: 8px;
+                    color: #1a3a6c;
                     font-size: 11px;
                     text-transform: uppercase;
-                    letter-spacing: 0.5px;
+                    letter-spacing: 0.3px;
+                    border-bottom: 1px solid #e0e4ea;
+                    padding-bottom: 5px;
                 }
                 .remigrar-file-info {
-                    background: #2d3748;
-                    padding: 10px;
-                    border-radius: 6px;
-                    margin-bottom: 10px;
+                    background: #f0f2f5;
+                    padding: 8px 10px;
+                    border-radius: 3px;
+                    margin-bottom: 8px;
+                    border: 1px solid #c8d0db;
+                    font-size: 12px;
+                    color: #444444;
                 }
                 .remigrar-file-info.empty {
                     text-align: center;
-                    color: #718096;
+                    color: #888888;
                 }
                 #remigrar-file-input {
                     display: none;
@@ -966,23 +974,24 @@
                 .remigrar-file-btn {
                     display: block;
                     width: 100%;
-                    padding: 12px;
-                    background: linear-gradient(90deg, #4299e1 0%, #3182ce 100%);
+                    padding: 8px;
+                    background: #1a3a6c;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 3px;
                     color: white;
-                    font-weight: 600;
+                    font-weight: bold;
                     cursor: pointer;
                     text-align: center;
+                    font-size: 12px;
+                    box-sizing: border-box;
                 }
                 .remigrar-file-btn:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+                    background: #153060;
                 }
                 .remigrar-instance-row {
                     display: flex;
-                    gap: 10px;
-                    margin-bottom: 10px;
+                    gap: 8px;
+                    margin-bottom: 8px;
                 }
                 .remigrar-instance-group {
                     flex: 1;
@@ -990,81 +999,91 @@
                 .remigrar-instance-group label {
                     display: block;
                     font-size: 11px;
-                    color: #a0aec0;
-                    margin-bottom: 4px;
+                    color: #555555;
+                    margin-bottom: 3px;
                 }
                 .remigrar-instance-group input {
                     width: 100%;
-                    padding: 8px;
-                    background: #2d3748;
-                    border: 1px solid #4a5568;
-                    border-radius: 4px;
-                    color: #e2e8f0;
-                    font-size: 14px;
+                    padding: 6px;
+                    background: #ffffff;
+                    border: 1px solid #aab0bb;
+                    border-radius: 3px;
+                    color: #333333;
+                    font-size: 13px;
                     text-align: center;
                     box-sizing: border-box;
                 }
                 .remigrar-slice-info {
-                    background: #2d3748;
-                    padding: 8px 10px;
-                    border-radius: 4px;
+                    background: #f0f2f5;
+                    padding: 6px 8px;
+                    border-radius: 3px;
                     font-size: 12px;
                     text-align: center;
+                    color: #555555;
+                    border: 1px solid #c8d0db;
                 }
                 #remigrar-controls {
                     display: flex;
-                    gap: 8px;
+                    gap: 6px;
                 }
                 .remigrar-btn {
                     flex: 1;
-                    padding: 10px;
+                    padding: 7px 10px;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 3px;
                     cursor: pointer;
-                    font-weight: 600;
-                    font-size: 13px;
-                    transition: all 0.2s;
+                    font-weight: bold;
+                    font-size: 12px;
+                    transition: opacity 0.15s;
                 }
                 .remigrar-btn:disabled {
-                    opacity: 0.5;
+                    opacity: 0.45;
                     cursor: not-allowed;
                 }
                 .remigrar-btn-primary {
-                    background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+                    background: #2e7031;
                     color: white;
                 }
                 .remigrar-btn-primary:hover:not(:disabled) {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+                    background: #256027;
                 }
                 .remigrar-btn-warning {
-                    background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%);
+                    background: #bf6000;
                     color: white;
+                }
+                .remigrar-btn-warning:hover:not(:disabled) {
+                    background: #a05200;
                 }
                 .remigrar-btn-danger {
-                    background: linear-gradient(90deg, #f56565 0%, #e53e3e 100%);
+                    background: #b71c1c;
                     color: white;
+                }
+                .remigrar-btn-danger:hover:not(:disabled) {
+                    background: #9a1717;
                 }
                 .remigrar-btn-secondary {
-                    background: #4a5568;
+                    background: #546e7a;
                     color: white;
                 }
+                .remigrar-btn-secondary:hover:not(:disabled) {
+                    background: #455a64;
+                }
                 #remigrar-progress-container {
-                    margin-bottom: 10px;
+                    margin-bottom: 8px;
                 }
                 #remigrar-progress-bar {
                     width: 100%;
-                    height: 20px;
-                    background: #2d3748;
-                    border-radius: 10px;
+                    height: 18px;
+                    background: #e0e4ea;
+                    border-radius: 2px;
                     overflow: hidden;
                     position: relative;
+                    border: 1px solid #c8d0db;
                 }
                 #remigrar-progress-fill {
                     height: 100%;
-                    background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+                    background: #2e7031;
                     transition: width 0.3s ease;
-                    border-radius: 10px;
                 }
                 #remigrar-progress-text {
                     position: absolute;
@@ -1072,32 +1091,34 @@
                     left: 50%;
                     transform: translate(-50%, -50%);
                     font-size: 11px;
-                    font-weight: 600;
-                    color: white;
-                    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+                    font-weight: bold;
+                    color: #333333;
                 }
                 #remigrar-status {
-                    background: #2d3748;
-                    padding: 10px;
-                    border-radius: 6px;
+                    background: #f5f7fa;
+                    padding: 8px 10px;
+                    border-radius: 3px;
                     font-size: 12px;
-                    line-height: 1.6;
+                    line-height: 1.7;
+                    border: 1px solid #c8d0db;
                 }
                 .status-row {
                     display: flex;
                     justify-content: space-between;
                 }
                 .status-label {
-                    color: #a0aec0;
+                    color: #555555;
                 }
                 .status-value {
-                    font-weight: 600;
+                    font-weight: bold;
+                    color: #222222;
                 }
                 #remigrar-export-stats {
-                    background: #1a365d;
-                    padding: 10px;
-                    border-radius: 6px;
+                    background: #e8f0fb;
+                    padding: 8px 10px;
+                    border-radius: 3px;
                     font-size: 12px;
+                    border: 1px solid #c8d0db;
                 }
                 .processing-indicator {
                     animation: pulse 1.5s infinite;
@@ -1107,35 +1128,37 @@
                     50% { opacity: 0.5; }
                 }
                 .resume-banner {
-                    background: linear-gradient(90deg, #ed8936 0%, #dd6b20 100%);
-                    padding: 15px;
-                    border-radius: 6px;
-                    margin-bottom: 15px;
+                    background: #fff3e0;
+                    border: 1px solid #bf6000;
+                    padding: 12px;
+                    border-radius: 3px;
+                    margin-bottom: 8px;
                     text-align: center;
+                    color: #333333;
                 }
                 .resume-banner-title {
-                    font-weight: 600;
-                    margin-bottom: 5px;
+                    font-weight: bold;
+                    margin-bottom: 4px;
+                    color: #bf6000;
                 }
                 .resume-banner-info {
                     font-size: 11px;
-                    opacity: 0.9;
-                    margin-bottom: 10px;
+                    color: #555555;
+                    margin-bottom: 8px;
                 }
                 .resume-banner-buttons {
                     display: flex;
-                    gap: 8px;
+                    gap: 6px;
                     justify-content: center;
                 }
-                /* New Casual Mode Styles */
                 #remigrar-manual-input {
                     width: 100%;
                     height: 120px;
-                    background: #2d3748;
-                    border: 1px solid #4a5568;
-                    border-radius: 6px;
-                    color: #e2e8f0;
-                    padding: 10px;
+                    background: #ffffff;
+                    border: 1px solid #aab0bb;
+                    border-radius: 3px;
+                    color: #333333;
+                    padding: 8px;
                     font-family: 'Consolas', monospace;
                     font-size: 12px;
                     resize: vertical;
@@ -1144,42 +1167,41 @@
                 }
                 #remigrar-manual-input:focus {
                     outline: none;
-                    border-color: #667eea;
-                    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+                    border-color: #1a3a6c;
+                    box-shadow: 0 0 0 2px rgba(26,58,108,0.15);
                 }
                 .mode-hidden {
                     display: none !important;
                 }
                 #remigrar-mode-btn {
-                    background: rgba(255,255,255,0.15);
-                    border: none;
-                    color: #e2e8f0;
+                    background: rgba(255,255,255,0.2);
+                    border: 1px solid rgba(255,255,255,0.3);
+                    color: #ffffff;
                     cursor: pointer;
-                    width: 28px;
-                    height: 24px;
+                    width: 26px;
+                    height: 22px;
                     margin-right: 5px;
-                    border-radius: 4px;
-                    transition: all 0.2s;
-                    font-size: 14px;
+                    border-radius: 3px;
+                    transition: background 0.15s;
+                    font-size: 13px;
                 }
                 #remigrar-mode-btn:hover {
-                    background: rgba(255,255,255,0.3);
-                    color: white;
-                    transform: scale(1.05);
+                    background: rgba(255,255,255,0.35);
                 }
                 .input-count-badge {
                     float: right;
-                    background: #4a5568;
-                    padding: 2px 6px;
+                    background: #e0e4ea;
+                    padding: 1px 6px;
                     border-radius: 10px;
                     font-size: 10px;
-                    color: #a0aec0;
+                    color: #555555;
+                    font-weight: normal;
                 }
             </style>
             <div id="remigrar-hud-header">
-                <span>⚡ Remigrar <span id="remigrar-mode-label" style="opacity:0.7; font-weight:normal; font-size:12px; margin-left:5px">Casual</span></span>
-                <div style="display:flex; align-items:center">
-                    <button id="remigrar-mode-btn" title="Alternar Modo Casual/Bulk">🔄</button>
+                <span>Remigrar por Módulo <span id="remigrar-mode-label" style="opacity:0.75; font-weight:normal; font-size:11px; margin-left:6px; border:1px solid rgba(255,255,255,0.3); padding:1px 6px; border-radius:2px">Casual</span></span>
+                <div style="display:flex; align-items:center; gap:4px">
+                    <button id="remigrar-mode-btn" title="Alternar Modo Casual/Bulk">⇄</button>
                     <button id="remigrar-hud-toggle">−</button>
                 </div>
             </div>
@@ -1194,7 +1216,7 @@
                             <span id="remigrar-manual-count" class="input-count-badge">0</span>
                         </div>
                         <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
-                        <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left; color:#a0aec0; padding:5px;">
+                        <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left; color:#666666; padding:5px;">
                             Cole a lista para iniciar
                         </div>
                     </div>
