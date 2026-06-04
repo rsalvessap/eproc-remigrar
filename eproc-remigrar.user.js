@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.3
+// @version      2.4
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
@@ -891,243 +891,265 @@
         hud.innerHTML = `
             <style>
                 #remigrar-hud {
-                    display: block;
-                    margin: 0 0 16px 0;
-                    background: #ffffff;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
+                    display: block !important;
+                    width: 100% !important;
+                    margin: 0 0 16px 0 !important;
+                    background: #ffffff !important;
+                    border: 1px solid #ccc !important;
+                    border-radius: 4px !important;
+                    font-family: Arial, sans-serif !important;
+                    font-size: 13px !important;
+                    color: #333333 !important;
+                    box-sizing: border-box !important;
+                }
+                #remigrar-hud * {
+                    box-sizing: border-box;
                     font-family: Arial, sans-serif;
-                    font-size: 13px;
-                    color: #333333;
+                }
+                #remigrar-hud button {
+                    display: inline-block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
                 }
                 #remigrar-hud-header {
-                    background: #0d47a1;
-                    padding: 10px 14px;
-                    font-weight: bold;
-                    font-size: 13px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    color: #ffffff;
-                    border-radius: 3px 3px 0 0;
+                    background: #0d47a1 !important;
+                    padding: 10px 14px !important;
+                    font-weight: bold !important;
+                    font-size: 13px !important;
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    color: #ffffff !important;
+                    border-radius: 3px 3px 0 0 !important;
                 }
                 #remigrar-hud-toggle {
-                    background: rgba(255,255,255,0.2);
-                    border: 1px solid rgba(255,255,255,0.4);
-                    color: white;
-                    width: 22px;
-                    height: 22px;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    line-height: 1;
+                    background: rgba(255,255,255,0.2) !important;
+                    border: 1px solid rgba(255,255,255,0.4) !important;
+                    color: white !important;
+                    width: 22px !important;
+                    height: 22px !important;
+                    border-radius: 3px !important;
+                    cursor: pointer !important;
+                    font-size: 14px !important;
+                    line-height: 1 !important;
+                    padding: 0 !important;
                 }
                 #remigrar-hud-body {
-                    padding: 12px;
-                    background: #e3f2fd;
+                    padding: 12px !important;
+                    background: #e3f2fd !important;
                 }
                 #remigrar-hud-body.collapsed {
-                    display: none;
+                    display: none !important;
                 }
                 #remigrar-columns {
-                    display: flex;
-                    gap: 12px;
-                    align-items: flex-start;
+                    display: flex !important;
+                    gap: 12px !important;
+                    align-items: flex-start !important;
+                    width: 100% !important;
                 }
                 #remigrar-left {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    min-width: 0;
+                    flex: 1 1 0 !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 8px !important;
+                    min-width: 0 !important;
+                    width: 50% !important;
                 }
                 #remigrar-right {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    min-width: 0;
+                    flex: 1 1 0 !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 8px !important;
+                    min-width: 0 !important;
+                    width: 50% !important;
                 }
                 .remigrar-section {
-                    background: #ffffff;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    padding: 10px;
+                    background: #ffffff !important;
+                    border: 1px solid #ccc !important;
+                    border-radius: 3px !important;
+                    padding: 10px !important;
                 }
                 .remigrar-section-title {
-                    font-weight: bold;
-                    margin-bottom: 8px;
-                    color: #0d47a1;
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.3px;
-                    border-bottom: 1px solid #ccc;
-                    padding-bottom: 5px;
+                    font-weight: bold !important;
+                    margin-bottom: 8px !important;
+                    color: #0d47a1 !important;
+                    font-size: 11px !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.3px !important;
+                    border-bottom: 1px solid #ccc !important;
+                    padding-bottom: 5px !important;
+                    display: block !important;
                 }
                 .remigrar-file-info {
-                    background: #f5f5f5;
-                    padding: 8px 10px;
-                    border-radius: 3px;
-                    margin-bottom: 8px;
-                    border: 1px solid #ccc;
-                    font-size: 12px;
-                    color: #444444;
+                    background: #f5f5f5 !important;
+                    padding: 8px 10px !important;
+                    border-radius: 3px !important;
+                    margin-bottom: 8px !important;
+                    border: 1px solid #ccc !important;
+                    font-size: 12px !important;
+                    color: #444444 !important;
                 }
                 .remigrar-file-info.empty {
-                    text-align: center;
-                    color: #888888;
+                    text-align: center !important;
+                    color: #888888 !important;
                 }
                 #remigrar-file-input {
-                    display: none;
+                    display: none !important;
                 }
                 .remigrar-file-btn {
-                    display: block;
-                    width: 100%;
-                    padding: 8px;
-                    background: #0d47a1;
-                    border: none;
-                    border-radius: 3px;
-                    color: white;
-                    font-weight: bold;
-                    cursor: pointer;
-                    text-align: center;
-                    font-size: 12px;
-                    box-sizing: border-box;
+                    display: block !important;
+                    width: 100% !important;
+                    padding: 8px !important;
+                    background: #0d47a1 !important;
+                    border: none !important;
+                    border-radius: 3px !important;
+                    color: white !important;
+                    font-weight: bold !important;
+                    cursor: pointer !important;
+                    text-align: center !important;
+                    font-size: 12px !important;
                 }
                 .remigrar-file-btn:hover {
-                    background: #0a3880;
+                    background: #0a3880 !important;
                 }
                 .remigrar-instance-row {
-                    display: flex;
-                    gap: 8px;
-                    margin-bottom: 8px;
+                    display: flex !important;
+                    gap: 8px !important;
+                    margin-bottom: 8px !important;
                 }
                 .remigrar-instance-group {
-                    flex: 1;
+                    flex: 1 !important;
                 }
                 .remigrar-instance-group label {
-                    display: block;
-                    font-size: 11px;
-                    color: #555555;
-                    margin-bottom: 3px;
+                    display: block !important;
+                    font-size: 11px !important;
+                    color: #555555 !important;
+                    margin-bottom: 3px !important;
                 }
-                .remigrar-instance-group input {
-                    width: 100%;
-                    padding: 6px;
-                    background: #ffffff;
-                    border: 1px solid #aaa;
-                    border-radius: 3px;
-                    color: #333333;
-                    font-size: 13px;
-                    text-align: center;
-                    box-sizing: border-box;
+                .remigrar-instance-group input[type="number"] {
+                    width: 100% !important;
+                    padding: 6px !important;
+                    background: #ffffff !important;
+                    border: 1px solid #aaa !important;
+                    border-radius: 3px !important;
+                    color: #333333 !important;
+                    font-size: 13px !important;
+                    text-align: center !important;
                 }
                 .remigrar-slice-info {
-                    background: #f5f5f5;
-                    padding: 6px 8px;
-                    border-radius: 3px;
-                    font-size: 12px;
-                    text-align: center;
-                    color: #555555;
-                    border: 1px solid #ccc;
+                    background: #f5f5f5 !important;
+                    padding: 6px 8px !important;
+                    border-radius: 3px !important;
+                    font-size: 12px !important;
+                    text-align: center !important;
+                    color: #555555 !important;
+                    border: 1px solid #ccc !important;
+                    display: block !important;
                 }
                 #remigrar-controls {
-                    display: flex;
-                    gap: 6px;
+                    display: flex !important;
+                    gap: 6px !important;
                 }
                 .remigrar-btn {
-                    flex: 1;
-                    padding: 7px 10px;
-                    border: none;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-size: 12px;
-                    transition: opacity 0.15s;
+                    flex: 1 !important;
+                    padding: 7px 10px !important;
+                    border: none !important;
+                    border-radius: 3px !important;
+                    cursor: pointer !important;
+                    font-weight: bold !important;
+                    font-size: 12px !important;
+                    display: inline-block !important;
+                    visibility: visible !important;
+                    text-align: center !important;
+                    line-height: normal !important;
                 }
                 .remigrar-btn:disabled {
-                    opacity: 0.45;
-                    cursor: not-allowed;
+                    opacity: 0.5 !important;
+                    cursor: not-allowed !important;
                 }
                 .remigrar-btn-primary {
-                    background: #2e7d32;
-                    color: white;
+                    background: #2e7d32 !important;
+                    color: white !important;
                 }
                 .remigrar-btn-primary:hover:not(:disabled) {
-                    background: #256027;
+                    background: #256027 !important;
                 }
                 .remigrar-btn-warning {
-                    background: #bf6000;
-                    color: white;
+                    background: #bf6000 !important;
+                    color: white !important;
                 }
                 .remigrar-btn-warning:hover:not(:disabled) {
-                    background: #a05200;
+                    background: #a05200 !important;
                 }
                 .remigrar-btn-danger {
-                    background: #c62828;
-                    color: white;
+                    background: #c62828 !important;
+                    color: white !important;
                 }
                 .remigrar-btn-danger:hover:not(:disabled) {
-                    background: #a31f1f;
+                    background: #a31f1f !important;
                 }
                 .remigrar-btn-secondary {
-                    background: #546e7a;
-                    color: white;
+                    background: #546e7a !important;
+                    color: white !important;
                 }
                 .remigrar-btn-secondary:hover:not(:disabled) {
-                    background: #455a64;
+                    background: #455a64 !important;
                 }
                 #remigrar-progress-container {
-                    margin-bottom: 8px;
+                    margin-bottom: 8px !important;
                 }
                 #remigrar-progress-bar {
-                    width: 100%;
-                    height: 18px;
-                    background: #e0e0e0;
-                    border-radius: 2px;
-                    overflow: hidden;
-                    position: relative;
-                    border: 1px solid #ccc;
+                    width: 100% !important;
+                    height: 18px !important;
+                    background: #e0e0e0 !important;
+                    border-radius: 2px !important;
+                    overflow: hidden !important;
+                    position: relative !important;
+                    border: 1px solid #ccc !important;
+                    display: block !important;
                 }
                 #remigrar-progress-fill {
-                    height: 100%;
-                    background: #2e7d32;
-                    transition: width 0.3s ease;
+                    height: 100% !important;
+                    background: #2e7d32 !important;
+                    transition: width 0.3s ease !important;
+                    display: block !important;
                 }
                 #remigrar-progress-text {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #333333;
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    font-size: 11px !important;
+                    font-weight: bold !important;
+                    color: #333333 !important;
                 }
                 #remigrar-status {
-                    background: #f5f5f5;
-                    padding: 8px 10px;
-                    border-radius: 3px;
-                    font-size: 12px;
-                    line-height: 1.7;
-                    border: 1px solid #ccc;
+                    background: #f5f5f5 !important;
+                    padding: 8px 10px !important;
+                    border-radius: 3px !important;
+                    font-size: 12px !important;
+                    line-height: 1.7 !important;
+                    border: 1px solid #ccc !important;
+                    display: block !important;
                 }
                 .status-row {
-                    display: flex;
-                    justify-content: space-between;
+                    display: flex !important;
+                    justify-content: space-between !important;
                 }
                 .status-label {
-                    color: #555555;
+                    color: #555555 !important;
                 }
                 .status-value {
-                    font-weight: bold;
-                    color: #222222;
+                    font-weight: bold !important;
+                    color: #222222 !important;
                 }
                 #remigrar-export-stats {
-                    background: #e3f2fd;
-                    padding: 8px 10px;
-                    border-radius: 3px;
-                    font-size: 12px;
-                    border: 1px solid #ccc;
+                    background: #e3f2fd !important;
+                    padding: 8px 10px !important;
+                    border-radius: 3px !important;
+                    font-size: 12px !important;
+                    border: 1px solid #ccc !important;
+                    display: block !important;
                 }
                 .processing-indicator {
                     animation: pulse 1.5s infinite;
@@ -1137,74 +1159,77 @@
                     50% { opacity: 0.5; }
                 }
                 .resume-banner {
-                    background: #fff3e0;
-                    border: 1px solid #bf6000;
-                    padding: 12px;
-                    border-radius: 3px;
-                    margin-bottom: 8px;
-                    text-align: center;
-                    color: #333333;
+                    background: #fff3e0 !important;
+                    border: 1px solid #bf6000 !important;
+                    padding: 12px !important;
+                    border-radius: 3px !important;
+                    margin-bottom: 8px !important;
+                    text-align: center !important;
+                    color: #333333 !important;
+                    display: block !important;
                 }
                 .resume-banner-title {
-                    font-weight: bold;
-                    margin-bottom: 4px;
-                    color: #bf6000;
+                    font-weight: bold !important;
+                    margin-bottom: 4px !important;
+                    color: #bf6000 !important;
+                    display: block !important;
                 }
                 .resume-banner-info {
-                    font-size: 11px;
-                    color: #555555;
-                    margin-bottom: 8px;
+                    font-size: 11px !important;
+                    color: #555555 !important;
+                    margin-bottom: 8px !important;
+                    display: block !important;
                 }
                 .resume-banner-buttons {
-                    display: flex;
-                    gap: 6px;
-                    justify-content: center;
+                    display: flex !important;
+                    gap: 6px !important;
+                    justify-content: center !important;
                 }
                 #remigrar-manual-input {
-                    width: 100%;
-                    height: 120px;
-                    background: #ffffff;
-                    border: 1px solid #aaa;
-                    border-radius: 3px;
-                    color: #333333;
-                    padding: 8px;
-                    font-family: 'Consolas', monospace;
-                    font-size: 12px;
-                    resize: vertical;
-                    box-sizing: border-box;
-                    margin-bottom: 5px;
+                    width: 100% !important;
+                    height: 120px !important;
+                    background: #ffffff !important;
+                    border: 1px solid #aaa !important;
+                    border-radius: 3px !important;
+                    color: #333333 !important;
+                    padding: 8px !important;
+                    font-family: 'Consolas', monospace !important;
+                    font-size: 12px !important;
+                    resize: vertical !important;
+                    margin-bottom: 5px !important;
+                    display: block !important;
                 }
                 #remigrar-manual-input:focus {
-                    outline: none;
-                    border-color: #0d47a1;
-                    box-shadow: 0 0 0 2px rgba(13,71,161,0.15);
+                    outline: none !important;
+                    border-color: #0d47a1 !important;
+                    box-shadow: 0 0 0 2px rgba(13,71,161,0.15) !important;
                 }
                 .mode-hidden {
                     display: none !important;
                 }
                 #remigrar-mode-btn {
-                    background: rgba(255,255,255,0.2);
-                    border: 1px solid rgba(255,255,255,0.3);
-                    color: #ffffff;
-                    cursor: pointer;
-                    width: 26px;
-                    height: 22px;
-                    margin-right: 5px;
-                    border-radius: 3px;
-                    transition: background 0.15s;
-                    font-size: 13px;
+                    background: rgba(255,255,255,0.2) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                    color: #ffffff !important;
+                    cursor: pointer !important;
+                    width: 26px !important;
+                    height: 22px !important;
+                    margin-right: 5px !important;
+                    border-radius: 3px !important;
+                    font-size: 13px !important;
+                    padding: 0 !important;
                 }
                 #remigrar-mode-btn:hover {
-                    background: rgba(255,255,255,0.35);
+                    background: rgba(255,255,255,0.35) !important;
                 }
                 .input-count-badge {
-                    float: right;
-                    background: #e3f2fd;
-                    padding: 1px 6px;
-                    border-radius: 10px;
-                    font-size: 10px;
-                    color: #555555;
-                    font-weight: normal;
+                    float: right !important;
+                    background: #e3f2fd !important;
+                    padding: 1px 6px !important;
+                    border-radius: 10px !important;
+                    font-size: 10px !important;
+                    color: #555555 !important;
+                    font-weight: normal !important;
                 }
             </style>
             <div id="remigrar-hud-header">
