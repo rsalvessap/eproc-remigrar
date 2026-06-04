@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.4
+// @version      2.5
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
@@ -886,477 +886,379 @@
     // HUD COMPONENT
     // ═══════════════════════════════════════════════════════════════════════════
     function createHUD() {
-        const hud = document.createElement('div');
-        hud.id = 'remigrar-hud';
-        hud.innerHTML = `
+        const shadowHost = document.createElement('div');
+        Object.assign(shadowHost.style, { display: 'block', width: '100%', marginBottom: '16px' });
+        const shadow = shadowHost.attachShadow({ mode: 'open' });
+
+        shadow.innerHTML = `
             <style>
-                #remigrar-hud {
-                    display: block !important;
-                    width: 100% !important;
-                    margin: 0 0 16px 0 !important;
-                    background: #ffffff !important;
-                    border: 1px solid #ccc !important;
-                    border-radius: 4px !important;
-                    font-family: Arial, sans-serif !important;
-                    font-size: 13px !important;
-                    color: #333333 !important;
-                    box-sizing: border-box !important;
-                }
-                #remigrar-hud * {
+                /* Shadow DOM — fully isolated, no !important needed */
+                *, *::before, *::after {
                     box-sizing: border-box;
                     font-family: Arial, sans-serif;
                 }
-                #remigrar-hud button {
-                    display: inline-block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
+                #remigrar-hud {
+                    display: block;
+                    width: 100%;
+                    background: #ffffff;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    font-size: 13px;
+                    color: #333;
                 }
                 #remigrar-hud-header {
-                    background: #0d47a1 !important;
-                    padding: 10px 14px !important;
-                    font-weight: bold !important;
-                    font-size: 13px !important;
-                    display: flex !important;
-                    justify-content: space-between !important;
-                    align-items: center !important;
-                    color: #ffffff !important;
-                    border-radius: 3px 3px 0 0 !important;
-                }
-                #remigrar-hud-toggle {
-                    background: rgba(255,255,255,0.2) !important;
-                    border: 1px solid rgba(255,255,255,0.4) !important;
-                    color: white !important;
-                    width: 22px !important;
-                    height: 22px !important;
-                    border-radius: 3px !important;
-                    cursor: pointer !important;
-                    font-size: 14px !important;
-                    line-height: 1 !important;
-                    padding: 0 !important;
+                    background: #1565c0;
+                    color: #fff;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 14px;
+                    font-weight: bold;
+                    border-radius: 3px 3px 0 0;
                 }
                 #remigrar-hud-body {
-                    padding: 12px !important;
-                    background: #e3f2fd !important;
+                    background: #e3f2fd;
+                    padding: 12px;
                 }
                 #remigrar-hud-body.collapsed {
                     display: none !important;
                 }
                 #remigrar-columns {
-                    display: flex !important;
-                    gap: 12px !important;
-                    align-items: flex-start !important;
-                    width: 100% !important;
+                    display: flex;
+                    gap: 12px;
+                    align-items: flex-start;
                 }
-                #remigrar-left {
-                    flex: 1 1 0 !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                    min-width: 0 !important;
-                    width: 50% !important;
-                }
-                #remigrar-right {
-                    flex: 1 1 0 !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 8px !important;
-                    min-width: 0 !important;
-                    width: 50% !important;
+                #remigrar-left, #remigrar-right {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
                 }
                 .remigrar-section {
-                    background: #ffffff !important;
-                    border: 1px solid #ccc !important;
-                    border-radius: 3px !important;
-                    padding: 10px !important;
+                    background: #fff;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    padding: 10px;
                 }
                 .remigrar-section-title {
-                    font-weight: bold !important;
-                    margin-bottom: 8px !important;
-                    color: #0d47a1 !important;
-                    font-size: 11px !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 0.3px !important;
-                    border-bottom: 1px solid #ccc !important;
-                    padding-bottom: 5px !important;
-                    display: block !important;
+                    color: #1565c0;
+                    font-weight: bold;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.3px;
+                    border-bottom: 1px solid #ccc;
+                    padding-bottom: 5px;
+                    margin-bottom: 8px;
                 }
-                .remigrar-file-info {
-                    background: #f5f5f5 !important;
-                    padding: 8px 10px !important;
-                    border-radius: 3px !important;
-                    margin-bottom: 8px !important;
-                    border: 1px solid #ccc !important;
-                    font-size: 12px !important;
-                    color: #444444 !important;
-                }
-                .remigrar-file-info.empty {
-                    text-align: center !important;
-                    color: #888888 !important;
-                }
-                #remigrar-file-input {
-                    display: none !important;
-                }
-                .remigrar-file-btn {
-                    display: block !important;
-                    width: 100% !important;
-                    padding: 8px !important;
-                    background: #0d47a1 !important;
-                    border: none !important;
-                    border-radius: 3px !important;
-                    color: white !important;
-                    font-weight: bold !important;
-                    cursor: pointer !important;
-                    text-align: center !important;
-                    font-size: 12px !important;
-                }
-                .remigrar-file-btn:hover {
-                    background: #0a3880 !important;
-                }
-                .remigrar-instance-row {
-                    display: flex !important;
-                    gap: 8px !important;
-                    margin-bottom: 8px !important;
-                }
-                .remigrar-instance-group {
-                    flex: 1 !important;
-                }
-                .remigrar-instance-group label {
-                    display: block !important;
-                    font-size: 11px !important;
-                    color: #555555 !important;
-                    margin-bottom: 3px !important;
-                }
-                .remigrar-instance-group input[type="number"] {
-                    width: 100% !important;
-                    padding: 6px !important;
-                    background: #ffffff !important;
-                    border: 1px solid #aaa !important;
-                    border-radius: 3px !important;
-                    color: #333333 !important;
-                    font-size: 13px !important;
-                    text-align: center !important;
-                }
-                .remigrar-slice-info {
-                    background: #f5f5f5 !important;
-                    padding: 6px 8px !important;
-                    border-radius: 3px !important;
-                    font-size: 12px !important;
-                    text-align: center !important;
-                    color: #555555 !important;
-                    border: 1px solid #ccc !important;
-                    display: block !important;
-                }
-                #remigrar-controls {
-                    display: flex !important;
-                    gap: 6px !important;
+                button {
+                    display: inline-block;
+                    padding: 7px 10px;
+                    border: none;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    font-size: 12px;
+                    font-family: Arial, sans-serif;
+                    line-height: normal;
                 }
                 .remigrar-btn {
-                    flex: 1 !important;
-                    padding: 7px 10px !important;
-                    border: none !important;
-                    border-radius: 3px !important;
-                    cursor: pointer !important;
-                    font-weight: bold !important;
-                    font-size: 12px !important;
-                    display: inline-block !important;
-                    visibility: visible !important;
-                    text-align: center !important;
-                    line-height: normal !important;
+                    flex: 1;
                 }
                 .remigrar-btn:disabled {
-                    opacity: 0.5 !important;
-                    cursor: not-allowed !important;
+                    opacity: 0.45;
+                    cursor: not-allowed;
                 }
                 .remigrar-btn-primary {
-                    background: #2e7d32 !important;
-                    color: white !important;
-                }
-                .remigrar-btn-primary:hover:not(:disabled) {
-                    background: #256027 !important;
+                    background: #2e7d32;
+                    color: white;
                 }
                 .remigrar-btn-warning {
-                    background: #bf6000 !important;
-                    color: white !important;
-                }
-                .remigrar-btn-warning:hover:not(:disabled) {
-                    background: #a05200 !important;
+                    background: #bf6000;
+                    color: white;
                 }
                 .remigrar-btn-danger {
-                    background: #c62828 !important;
-                    color: white !important;
-                }
-                .remigrar-btn-danger:hover:not(:disabled) {
-                    background: #a31f1f !important;
+                    background: #c62828;
+                    color: white;
                 }
                 .remigrar-btn-secondary {
-                    background: #546e7a !important;
-                    color: white !important;
+                    background: #546e7a;
+                    color: white;
                 }
-                .remigrar-btn-secondary:hover:not(:disabled) {
-                    background: #455a64 !important;
+                #remigrar-file-input {
+                    display: none;
                 }
-                #remigrar-progress-container {
-                    margin-bottom: 8px !important;
+                .remigrar-file-btn {
+                    display: block;
+                    width: 100%;
+                    padding: 8px;
+                    background: #1565c0;
+                    color: white;
+                    font-weight: bold;
+                    cursor: pointer;
+                    text-align: center;
+                    font-size: 12px;
+                    box-sizing: border-box;
+                    border-radius: 3px;
+                }
+                .remigrar-file-info {
+                    background: #f5f5f5;
+                    padding: 8px 10px;
+                    border-radius: 3px;
+                    margin-bottom: 8px;
+                    border: 1px solid #ccc;
+                    font-size: 12px;
+                    color: #444;
+                }
+                .remigrar-file-info.empty {
+                    text-align: center;
+                    color: #888;
+                }
+                .remigrar-instance-row {
+                    display: flex;
+                    gap: 8px;
+                    margin-bottom: 8px;
+                }
+                .remigrar-instance-group {
+                    flex: 1;
+                }
+                .remigrar-instance-group label {
+                    display: block;
+                    font-size: 11px;
+                    color: #555;
+                    margin-bottom: 3px;
+                }
+                .remigrar-instance-group input {
+                    width: 100%;
+                    padding: 6px;
+                    border: 1px solid #aaa;
+                    border-radius: 3px;
+                    text-align: center;
+                    font-size: 13px;
+                }
+                .remigrar-slice-info {
+                    background: #f5f5f5;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    padding: 6px 8px;
+                    font-size: 12px;
+                    text-align: center;
+                    color: #555;
+                }
+                #remigrar-controls {
+                    display: flex;
+                    gap: 6px;
                 }
                 #remigrar-progress-bar {
-                    width: 100% !important;
-                    height: 18px !important;
-                    background: #e0e0e0 !important;
-                    border-radius: 2px !important;
-                    overflow: hidden !important;
-                    position: relative !important;
-                    border: 1px solid #ccc !important;
-                    display: block !important;
+                    width: 100%;
+                    height: 18px;
+                    background: #e0e0e0;
+                    border: 1px solid #ccc;
+                    border-radius: 2px;
+                    overflow: hidden;
+                    position: relative;
+                    margin-bottom: 8px;
                 }
                 #remigrar-progress-fill {
-                    height: 100% !important;
-                    background: #2e7d32 !important;
-                    transition: width 0.3s ease !important;
-                    display: block !important;
+                    height: 100%;
+                    background: #2e7d32;
+                    width: 0%;
+                    transition: width 0.3s ease;
                 }
                 #remigrar-progress-text {
-                    position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
-                    transform: translate(-50%, -50%) !important;
-                    font-size: 11px !important;
-                    font-weight: bold !important;
-                    color: #333333 !important;
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%,-50%);
+                    font-size: 11px;
+                    font-weight: bold;
+                    color: #333;
                 }
                 #remigrar-status {
-                    background: #f5f5f5 !important;
-                    padding: 8px 10px !important;
-                    border-radius: 3px !important;
-                    font-size: 12px !important;
-                    line-height: 1.7 !important;
-                    border: 1px solid #ccc !important;
-                    display: block !important;
+                    background: #f5f5f5;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    padding: 8px 10px;
+                    font-size: 12px;
+                    line-height: 1.7;
                 }
                 .status-row {
-                    display: flex !important;
-                    justify-content: space-between !important;
+                    display: flex;
+                    justify-content: space-between;
                 }
                 .status-label {
-                    color: #555555 !important;
+                    color: #555;
                 }
                 .status-value {
-                    font-weight: bold !important;
-                    color: #222222 !important;
+                    font-weight: bold;
+                    color: #222;
                 }
                 #remigrar-export-stats {
-                    background: #e3f2fd !important;
-                    padding: 8px 10px !important;
-                    border-radius: 3px !important;
-                    font-size: 12px !important;
-                    border: 1px solid #ccc !important;
-                    display: block !important;
+                    background: #e3f2fd;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                    padding: 8px 10px;
+                    font-size: 12px;
+                    margin-bottom: 8px;
                 }
-                .processing-indicator {
-                    animation: pulse 1.5s infinite;
+                .mode-hidden {
+                    display: none !important;
+                }
+                .input-count-badge {
+                    float: right;
+                    background: #e3f2fd;
+                    padding: 1px 6px;
+                    border-radius: 10px;
+                    font-size: 10px;
+                    color: #555;
+                    font-weight: normal;
+                }
+                .resume-banner {
+                    background: #fff3e0;
+                    border: 1px solid #bf6000;
+                    padding: 12px;
+                    border-radius: 3px;
+                    margin-bottom: 8px;
+                    text-align: center;
+                    color: #333;
+                }
+                .resume-banner-title {
+                    font-weight: bold;
+                    margin-bottom: 4px;
+                    color: #bf6000;
+                    display: block;
+                }
+                .resume-banner-info {
+                    font-size: 11px;
+                    color: #555;
+                    margin-bottom: 8px;
+                    display: block;
+                }
+                .resume-banner-buttons {
+                    display: flex;
+                    gap: 6px;
+                    justify-content: center;
+                }
+                #remigrar-manual-input {
+                    width: 100%;
+                    height: 120px;
+                    border: 1px solid #aaa;
+                    border-radius: 3px;
+                    color: #333;
+                    padding: 8px;
+                    font-family: Consolas, monospace;
+                    font-size: 12px;
+                    resize: vertical;
+                    box-sizing: border-box;
+                    margin-bottom: 5px;
+                    background: #fff;
+                }
+                #remigrar-hud-toggle {
+                    background: rgba(255,255,255,0.2);
+                    border: 1px solid rgba(255,255,255,0.4);
+                    color: white;
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    padding: 0;
+                }
+                #remigrar-mode-btn {
+                    background: rgba(255,255,255,0.2);
+                    border: 1px solid rgba(255,255,255,0.4);
+                    color: white;
+                    width: 26px;
+                    height: 22px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    padding: 0;
                 }
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
                 }
-                .resume-banner {
-                    background: #fff3e0 !important;
-                    border: 1px solid #bf6000 !important;
-                    padding: 12px !important;
-                    border-radius: 3px !important;
-                    margin-bottom: 8px !important;
-                    text-align: center !important;
-                    color: #333333 !important;
-                    display: block !important;
-                }
-                .resume-banner-title {
-                    font-weight: bold !important;
-                    margin-bottom: 4px !important;
-                    color: #bf6000 !important;
-                    display: block !important;
-                }
-                .resume-banner-info {
-                    font-size: 11px !important;
-                    color: #555555 !important;
-                    margin-bottom: 8px !important;
-                    display: block !important;
-                }
-                .resume-banner-buttons {
-                    display: flex !important;
-                    gap: 6px !important;
-                    justify-content: center !important;
-                }
-                #remigrar-manual-input {
-                    width: 100% !important;
-                    height: 120px !important;
-                    background: #ffffff !important;
-                    border: 1px solid #aaa !important;
-                    border-radius: 3px !important;
-                    color: #333333 !important;
-                    padding: 8px !important;
-                    font-family: 'Consolas', monospace !important;
-                    font-size: 12px !important;
-                    resize: vertical !important;
-                    margin-bottom: 5px !important;
-                    display: block !important;
-                }
-                #remigrar-manual-input:focus {
-                    outline: none !important;
-                    border-color: #0d47a1 !important;
-                    box-shadow: 0 0 0 2px rgba(13,71,161,0.15) !important;
-                }
-                .mode-hidden {
-                    display: none !important;
-                }
-                #remigrar-mode-btn {
-                    background: rgba(255,255,255,0.2) !important;
-                    border: 1px solid rgba(255,255,255,0.3) !important;
-                    color: #ffffff !important;
-                    cursor: pointer !important;
-                    width: 26px !important;
-                    height: 22px !important;
-                    margin-right: 5px !important;
-                    border-radius: 3px !important;
-                    font-size: 13px !important;
-                    padding: 0 !important;
-                }
-                #remigrar-mode-btn:hover {
-                    background: rgba(255,255,255,0.35) !important;
-                }
-                .input-count-badge {
-                    float: right !important;
-                    background: #e3f2fd !important;
-                    padding: 1px 6px !important;
-                    border-radius: 10px !important;
-                    font-size: 10px !important;
-                    color: #555555 !important;
-                    font-weight: normal !important;
+                .processing-indicator {
+                    animation: pulse 1.5s infinite;
                 }
             </style>
-            <div id="remigrar-hud-header">
-                <span>Remigrar por Módulo <span id="remigrar-mode-label" style="opacity:0.75; font-weight:normal; font-size:11px; margin-left:6px; border:1px solid rgba(255,255,255,0.3); padding:1px 6px; border-radius:2px">Casual</span></span>
-                <div style="display:flex; align-items:center; gap:4px">
-                    <button id="remigrar-mode-btn" title="Alternar Modo Casual/Bulk">⇄</button>
-                    <button id="remigrar-hud-toggle">−</button>
+            <div id="remigrar-hud">
+                <div id="remigrar-hud-header">
+                    <span>Remigrar por Módulo <span id="remigrar-mode-label" style="opacity:0.75;font-weight:normal;font-size:11px;margin-left:6px;border:1px solid rgba(255,255,255,0.3);padding:1px 6px;border-radius:2px">Casual</span></span>
+                    <div style="display:flex;align-items:center;gap:4px">
+                        <button id="remigrar-mode-btn" title="Alternar Modo Casual/Bulk">⇄</button>
+                        <button id="remigrar-hud-toggle">−</button>
+                    </div>
                 </div>
-            </div>
-            <div id="remigrar-hud-body">
-                <div id="remigrar-resume-banner" style="display: none;"></div>
-                <div id="remigrar-columns">
-
-                    <!-- LEFT COLUMN: Input -->
-                    <div id="remigrar-left">
-
-                        <!-- CASUAL MODE CONTAINER -->
-                        <div id="remigrar-casual-container">
-                            <div class="remigrar-section">
-                                <div class="remigrar-section-title">
-                                    📝 Entrada Manual
-                                    <span id="remigrar-manual-count" class="input-count-badge">0</span>
+                <div id="remigrar-hud-body">
+                    <div id="remigrar-resume-banner" style="display:none;"></div>
+                    <div id="remigrar-columns">
+                        <div id="remigrar-left">
+                            <!-- CASUAL -->
+                            <div id="remigrar-casual-container">
+                                <div class="remigrar-section">
+                                    <div class="remigrar-section-title">📝 Entrada Manual <span id="remigrar-manual-count" class="input-count-badge">0</span></div>
+                                    <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
+                                    <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left;color:#666;padding:5px;">Cole a lista para iniciar</div>
                                 </div>
-                                <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
-                                <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left; color:#666666; padding:5px;">
-                                    Cole a lista para iniciar
+                            </div>
+                            <!-- BULK -->
+                            <div id="remigrar-bulk-container" class="mode-hidden">
+                                <div class="remigrar-section">
+                                    <div class="remigrar-section-title">📁 Arquivo de Entrada</div>
+                                    <div id="remigrar-file-info" class="remigrar-file-info empty">Nenhum arquivo selecionado</div>
+                                    <input type="file" id="remigrar-file-input" accept=".txt,.csv">
+                                    <label for="remigrar-file-input" class="remigrar-file-btn">📂 Selecionar Arquivo</label>
+                                </div>
+                                <div class="remigrar-section" style="margin-top:8px">
+                                    <div class="remigrar-section-title">🖥️ Multi-Instância</div>
+                                    <div class="remigrar-instance-row">
+                                        <div class="remigrar-instance-group"><label>Esta Instância</label><input type="number" id="remigrar-instance-id" min="1" value="1"></div>
+                                        <div class="remigrar-instance-group"><label>Total de Instâncias</label><input type="number" id="remigrar-total-instances" min="1" value="1"></div>
+                                    </div>
+                                    <div id="remigrar-slice-info" class="remigrar-slice-info">Carregue um arquivo para ver a distribuição</div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- BULK MODE CONTAINER -->
-                        <div id="remigrar-bulk-container" class="mode-hidden">
+                        <div id="remigrar-right">
                             <div class="remigrar-section">
-                                <div class="remigrar-section-title">📁 Arquivo de Entrada</div>
-                                <div id="remigrar-file-info" class="remigrar-file-info empty">
-                                    Nenhum arquivo selecionado
+                                <div class="remigrar-section-title">🎮 Controles</div>
+                                <div id="remigrar-controls">
+                                    <button id="remigrar-start" class="remigrar-btn remigrar-btn-primary" disabled>▶ Iniciar</button>
+                                    <button id="remigrar-pause" class="remigrar-btn remigrar-btn-warning" disabled>⏸ Pausar</button>
+                                    <button id="remigrar-stop" class="remigrar-btn remigrar-btn-danger" disabled>⏹ Parar</button>
                                 </div>
-                                <input type="file" id="remigrar-file-input" accept=".txt,.csv">
-                                <label for="remigrar-file-input" class="remigrar-file-btn">📂 Selecionar Arquivo</label>
                             </div>
-
                             <div class="remigrar-section">
-                                <div class="remigrar-section-title">🖥️ Multi-Instância</div>
-                                <div class="remigrar-instance-row">
-                                    <div class="remigrar-instance-group">
-                                        <label>Esta Instância</label>
-                                        <input type="number" id="remigrar-instance-id" min="1" value="1">
-                                    </div>
-                                    <div class="remigrar-instance-group">
-                                        <label>Total de Instâncias</label>
-                                        <input type="number" id="remigrar-total-instances" min="1" value="1">
-                                    </div>
+                                <div class="remigrar-section-title">📊 Progresso</div>
+                                <div id="remigrar-progress-bar"><div id="remigrar-progress-fill"></div><span id="remigrar-progress-text">0%</span></div>
+                                <div id="remigrar-status">
+                                    <div class="status-row"><span class="status-label">Status:</span><span class="status-value" id="status-state">Aguardando...</span></div>
+                                    <div class="status-row"><span class="status-label">Caso Atual:</span><span class="status-value" id="status-case">-</span></div>
+                                    <div class="status-row"><span class="status-label">Etapa:</span><span class="status-value" id="status-step">-</span></div>
+                                    <div class="status-row"><span class="status-label">ETA:</span><span class="status-value" id="status-eta">-</span></div>
+                                    <div class="status-row"><span class="status-label">Velocidade:</span><span class="status-value" id="status-rate">-</span></div>
                                 </div>
-                                <div id="remigrar-slice-info" class="remigrar-slice-info">
-                                    Carregue um arquivo para ver a distribuição
-                                </div>
+                            </div>
+                            <div class="remigrar-section">
+                                <div class="remigrar-section-title">📋 Resultados</div>
+                                <div id="remigrar-export-stats"><div class="status-row"><span class="status-label">Casos Completos:</span><span class="status-value" id="completed-count">0</span></div></div>
+                                <button id="remigrar-export-now" class="remigrar-btn remigrar-btn-secondary" style="margin-top:8px;width:100%;">📥 Exportar Agora</button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- RIGHT COLUMN: Controls + Progress + Results -->
-                    <div id="remigrar-right">
-                        <div class="remigrar-section">
-                            <div class="remigrar-section-title">🎮 Controles</div>
-                            <div id="remigrar-controls">
-                                <button id="remigrar-start" class="remigrar-btn remigrar-btn-primary" disabled>▶ Iniciar</button>
-                                <button id="remigrar-pause" class="remigrar-btn remigrar-btn-warning" disabled>⏸ Pausar</button>
-                                <button id="remigrar-stop" class="remigrar-btn remigrar-btn-danger" disabled>⏹ Parar</button>
-                            </div>
-                        </div>
-
-                        <div class="remigrar-section">
-                            <div class="remigrar-section-title">📊 Progresso</div>
-                            <div id="remigrar-progress-container">
-                                <div id="remigrar-progress-bar">
-                                    <div id="remigrar-progress-fill" style="width: 0%"></div>
-                                    <span id="remigrar-progress-text">0%</span>
-                                </div>
-                            </div>
-                            <div id="remigrar-status">
-                                <div class="status-row">
-                                    <span class="status-label">Status:</span>
-                                    <span class="status-value" id="status-state">Aguardando...</span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="status-label">Caso Atual:</span>
-                                    <span class="status-value" id="status-case">-</span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="status-label">Etapa:</span>
-                                    <span class="status-value" id="status-step">-</span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="status-label">ETA:</span>
-                                    <span class="status-value" id="status-eta">-</span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="status-label">Velocidade:</span>
-                                    <span class="status-value" id="status-rate">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="remigrar-section">
-                            <div class="remigrar-section-title">📋 Resultados</div>
-                            <div id="remigrar-export-stats">
-                                <div class="status-row">
-                                    <span class="status-label">Casos Completos:</span>
-                                    <span class="status-value" id="completed-count">0</span>
-                                </div>
-                            </div>
-                            <button id="remigrar-export-now" class="remigrar-btn remigrar-btn-secondary" style="margin-top: 8px; width: 100%;">
-                                📥 Exportar Agora
-                            </button>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         `;
+
+        const hud = shadow.querySelector('#remigrar-hud');
 
         const container = document.querySelector('#divInfraAreaTelaD')
             || document.querySelector('#divInfraConteudoForm')
             || document.querySelector('#divInfraConteudo')
             || document.querySelector('.infraAreaTelaD')
             || document.body;
-        container.insertBefore(hud, container.firstChild);
+        container.insertBefore(shadowHost, container.firstChild);
 
         // ═══════════════════════════════════════════════════════════════════════
         // HUD ELEMENTS
