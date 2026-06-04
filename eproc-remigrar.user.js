@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.5
+// @version      2.6
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://cdn.jsdelivr.net/gh/rsalvessap/eproc-remigrar@master/eproc-remigrar.user.js
@@ -907,7 +907,7 @@
                     color: #333;
                 }
                 #remigrar-hud-header {
-                    background: #1565c0;
+                    background: #2168B5;
                     color: #fff;
                     display: flex;
                     justify-content: space-between;
@@ -941,7 +941,7 @@
                     padding: 10px;
                 }
                 .remigrar-section-title {
-                    color: #1565c0;
+                    color: #2168B5;
                     font-weight: bold;
                     font-size: 11px;
                     text-transform: uppercase;
@@ -991,7 +991,7 @@
                     display: block;
                     width: 100%;
                     padding: 8px;
-                    background: #1565c0;
+                    background: #2168B5;
                     color: white;
                     font-weight: bold;
                     cursor: pointer;
@@ -1163,17 +1163,30 @@
                     font-size: 13px;
                     padding: 0;
                 }
-                #remigrar-mode-btn {
-                    background: rgba(255,255,255,0.2);
-                    border: 1px solid rgba(255,255,255,0.4);
-                    color: white;
-                    width: 26px;
-                    height: 22px;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    font-size: 13px;
-                    padding: 0;
+                #remigrar-mode-toggle {
+                    display: flex;
+                    border: 1px solid #ccc;
+                    border-radius: 2px;
+                    overflow: hidden;
+                    background: #f5f5f5;
                 }
+                .mode-tab {
+                    flex: 1;
+                    padding: 6px 10px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    border: none;
+                    background: #f5f5f5;
+                    color: #555;
+                    cursor: pointer;
+                    border-right: 1px solid #ccc;
+                }
+                .mode-tab:last-child { border-right: none; }
+                .mode-tab.active {
+                    background: #2168B5;
+                    color: #fff;
+                }
+                .mode-tab:hover:not(.active) { background: #e8e8e8; }
                 @keyframes pulse {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
@@ -1184,16 +1197,17 @@
             </style>
             <div id="remigrar-hud">
                 <div id="remigrar-hud-header">
-                    <span>Remigrar por Módulo <span id="remigrar-mode-label" style="opacity:0.75;font-weight:normal;font-size:11px;margin-left:6px;border:1px solid rgba(255,255,255,0.3);padding:1px 6px;border-radius:2px">Casual</span></span>
-                    <div style="display:flex;align-items:center;gap:4px">
-                        <button id="remigrar-mode-btn" title="Alternar Modo Casual/Bulk">⇄</button>
-                        <button id="remigrar-hud-toggle">−</button>
-                    </div>
+                    <span>Remigrar por Módulo</span>
+                    <button id="remigrar-hud-toggle">−</button>
                 </div>
                 <div id="remigrar-hud-body">
                     <div id="remigrar-resume-banner" style="display:none;"></div>
                     <div id="remigrar-columns">
                         <div id="remigrar-left">
+                            <div id="remigrar-mode-toggle">
+                                <button id="remigrar-mode-casual" class="mode-tab active">📝 Lista manual</button>
+                                <button id="remigrar-mode-bulk" class="mode-tab">📁 Arquivo</button>
+                            </div>
                             <!-- CASUAL -->
                             <div id="remigrar-casual-container">
                                 <div class="remigrar-section">
@@ -1265,8 +1279,8 @@
         // ═══════════════════════════════════════════════════════════════════════
         const elements = {
             toggle: hud.querySelector('#remigrar-hud-toggle'),
-            modeBtn: hud.querySelector('#remigrar-mode-btn'),
-            modeLabel: hud.querySelector('#remigrar-mode-label'),
+            modeCasualBtn: hud.querySelector('#remigrar-mode-casual'),
+            modeBulkBtn: hud.querySelector('#remigrar-mode-bulk'),
             body: hud.querySelector('#remigrar-hud-body'),
             // Containers
             casualContainer: hud.querySelector('#remigrar-casual-container'),
@@ -1549,7 +1563,6 @@
             FileProcessor.activeMode = isCasualMode ? 'manual' : 'file';
 
             if (isCasualMode) {
-                elements.modeLabel.textContent = 'Casual';
                 elements.casualContainer.classList.remove('mode-hidden');
                 elements.bulkContainer.classList.add('mode-hidden');
 
@@ -1557,16 +1570,19 @@
                 const count = FileProcessor.allCases.length;
                 elements.startBtn.disabled = count === 0;
             } else {
-                elements.modeLabel.textContent = 'Bulk';
                 elements.casualContainer.classList.add('mode-hidden');
                 elements.bulkContainer.classList.remove('mode-hidden');
                 elements.startBtn.disabled = !fileLoaded;
             }
 
+            elements.modeCasualBtn.classList.toggle('active', isCasualMode);
+            elements.modeBulkBtn.classList.toggle('active', !isCasualMode);
+
             Storage.saveSettings({ ...Storage.loadSettings(), isCasualMode });
         }
 
-        elements.modeBtn.addEventListener('click', () => toggleMode());
+        elements.modeCasualBtn.addEventListener('click', () => toggleMode(true));
+        elements.modeBulkBtn.addEventListener('click', () => toggleMode(false));
 
         // Restore mode setting
         if (settings.isCasualMode !== undefined) {
