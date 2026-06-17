@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.7
+// @version      2.8
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-remigrar/master/eproc-remigrar.user.js
@@ -544,7 +544,7 @@
 
                     <div class="row">
                         <!-- ── COLUNA ESQUERDA: Entrada ── -->
-                        <div class="col-6">
+                        <div class="col-7">
 
                             <!-- Toggle de modo -->
                             <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-mode-toggle">
@@ -560,8 +560,7 @@
                                 </div>
                                 <textarea id="remigrar-manual-input"
                                     class="form-control form-control-sm mb-1"
-                                    rows="5"
-                                    style="font-family:Consolas,monospace;resize:vertical"
+                                    style="font-family:Consolas,monospace;resize:none;min-height:72px;overflow:hidden"
                                     placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
                                 <div id="remigrar-manual-status" class="small text-muted">Cole a lista para iniciar</div>
                             </div>
@@ -589,7 +588,7 @@
                         </div>
 
                         <!-- ── COLUNA DIREITA: Controles + Progresso + Resultados ── -->
-                        <div class="col-6">
+                        <div class="col-5">
 
                             <div class="remigrar-section-title">Controles</div>
                             <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-controls">
@@ -829,6 +828,8 @@
 
         // ── Entrada manual ──
         elements.manualInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
             const result = FileProcessor.loadText(e.target.value);
             elements.manualCount.textContent = result.totalCases;
             if (result.totalCases > 0) {
