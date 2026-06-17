@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.8
+// @version      2.9
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-remigrar/master/eproc-remigrar.user.js
@@ -542,36 +542,48 @@
                     <!-- Banner de retomada -->
                     <div id="remigrar-resume-banner" class="alert alert-warning p-2 mb-2 text-center" style="display:none"></div>
 
-                    <div class="row">
-                        <!-- ── COLUNA ESQUERDA: Entrada ── -->
-                        <div class="col-7">
-
-                            <!-- Toggle de modo -->
-                            <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-mode-toggle">
+                    <!-- ── LINHA 1: Toggle de modo + Controles ── -->
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <div class="btn-group btn-group-sm w-100" id="remigrar-mode-toggle">
                                 <button id="remigrar-mode-casual" class="btn btn-secondary">📝 Lista manual</button>
                                 <button id="remigrar-mode-bulk"   class="btn btn-outline-secondary">📁 Arquivo</button>
                             </div>
-
-                            <!-- MODO MANUAL -->
-                            <div id="remigrar-casual-container">
-                                <div class="remigrar-section-title">
-                                    Entrada Manual
-                                    <span id="remigrar-manual-count" class="badge badge-info ml-1">0</span>
-                                </div>
-                                <textarea id="remigrar-manual-input"
-                                    class="form-control form-control-sm mb-1"
-                                    style="font-family:Consolas,monospace;resize:none;min-height:72px;overflow:hidden"
-                                    placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
-                                <div id="remigrar-manual-status" class="small text-muted">Cole a lista para iniciar</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="btn-group btn-group-sm w-100" id="remigrar-controls">
+                                <button id="remigrar-start" class="btn btn-primary"  disabled>▶ Iniciar</button>
+                                <button id="remigrar-pause" class="btn btn-warning"  disabled>⏸ Pausar</button>
+                                <button id="remigrar-stop"  class="btn btn-danger"   disabled>⏹ Parar</button>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- MODO ARQUIVO -->
-                            <div id="remigrar-bulk-container" class="mode-hidden">
+                    <!-- ── LINHA 2: Entrada (largura total) ── -->
+
+                    <!-- MODO MANUAL -->
+                    <div id="remigrar-casual-container">
+                        <div class="remigrar-section-title">
+                            Números dos Processos
+                            <span id="remigrar-manual-count" class="badge badge-info ml-1">0</span>
+                        </div>
+                        <textarea id="remigrar-manual-input"
+                            class="form-control form-control-sm mb-1"
+                            style="font-family:Consolas,monospace;resize:none;min-height:80px;overflow:hidden;width:100%"
+                            placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
+                        <div id="remigrar-manual-status" class="small text-muted">Cole a lista para iniciar</div>
+                    </div>
+
+                    <!-- MODO ARQUIVO -->
+                    <div id="remigrar-bulk-container" class="mode-hidden">
+                        <div class="row">
+                            <div class="col-6">
                                 <div class="remigrar-section-title">Arquivo de Entrada</div>
                                 <div id="remigrar-file-info" class="alert alert-secondary p-2 mb-2 small">Nenhum arquivo selecionado</div>
                                 <input type="file" id="remigrar-file-input" accept=".txt,.csv" style="display:none">
                                 <label for="remigrar-file-input" class="btn btn-sm btn-primary btn-block mb-2">📂 Selecionar Arquivo</label>
-
+                            </div>
+                            <div class="col-6">
                                 <div class="remigrar-section-title">Multi-Instância</div>
                                 <div class="form-row">
                                     <div class="form-group col mb-1">
@@ -586,36 +598,31 @@
                                 <div id="remigrar-slice-info" class="small text-muted text-center">Carregue um arquivo para ver a distribuição</div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- ── COLUNA DIREITA: Controles + Progresso + Resultados ── -->
-                        <div class="col-5">
-
-                            <div class="remigrar-section-title">Controles</div>
-                            <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-controls">
-                                <button id="remigrar-start" class="btn btn-primary"  disabled>▶ Iniciar</button>
-                                <button id="remigrar-pause" class="btn btn-warning"  disabled>⏸ Pausar</button>
-                                <button id="remigrar-stop"  class="btn btn-danger"   disabled>⏹ Parar</button>
-                            </div>
-
-                            <div class="remigrar-section-title">Progresso</div>
-                            <div class="progress mb-2" style="height:18px">
-                                <div id="remigrar-progress-fill" class="progress-bar bg-success" role="progressbar"
-                                    style="width:0%;font-size:11px;font-weight:bold;transition:width 0.3s ease">0%</div>
-                            </div>
-                            <div id="remigrar-status" class="small mb-2" style="line-height:1.8">
+                    <!-- ── LINHA 3: Progresso + Status + Resultados ── -->
+                    <div class="remigrar-section-title mt-2">Progresso</div>
+                    <div class="progress mb-2" style="height:18px">
+                        <div id="remigrar-progress-fill" class="progress-bar bg-success" role="progressbar"
+                            style="width:0%;font-size:11px;font-weight:bold;transition:width 0.3s ease">0%</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8">
+                            <div id="remigrar-status" class="small" style="line-height:1.8">
                                 <div class="d-flex justify-content-between"><span class="text-muted">Status:</span>     <span class="font-weight-bold" id="status-state">Aguardando...</span></div>
                                 <div class="d-flex justify-content-between"><span class="text-muted">Caso Atual:</span> <span class="font-weight-bold" id="status-case">-</span></div>
                                 <div class="d-flex justify-content-between"><span class="text-muted">Etapa:</span>      <span class="font-weight-bold" id="status-step">-</span></div>
                                 <div class="d-flex justify-content-between"><span class="text-muted">ETA:</span>        <span class="font-weight-bold" id="status-eta">-</span></div>
                                 <div class="d-flex justify-content-between"><span class="text-muted">Velocidade:</span> <span class="font-weight-bold" id="status-rate">-</span></div>
                             </div>
-
-                            <div class="remigrar-section-title">Resultados</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="remigrar-section-title" style="margin-top:0">Resultados</div>
                             <div class="d-flex justify-content-between align-items-center small mb-2">
-                                <span class="text-muted">Casos Completos:</span>
+                                <span class="text-muted">Completos:</span>
                                 <span class="font-weight-bold" id="completed-count">0</span>
                             </div>
-                            <button id="remigrar-export-now" class="btn btn-sm btn-outline-secondary btn-block">📥 Exportar Agora</button>
+                            <button id="remigrar-export-now" class="btn btn-sm btn-outline-secondary btn-block">📥 Exportar</button>
                         </div>
                     </div>
 
