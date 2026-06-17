@@ -1,7 +1,7 @@
-﻿// ==UserScript==
+// ==UserScript==
 // @name         eProc Remigrar Automation
 // @namespace    https://github.com/rsalvessap/eproc-remigrar
-// @version      2.6
+// @version      2.7
 // @description  Robust bulk automation for "Remigrar Processo por Módulo" - handles 195k+ entries
 // @author       rsalvessap
 // @updateURL    https://raw.githubusercontent.com/rsalvessap/eproc-remigrar/master/eproc-remigrar.user.js
@@ -14,7 +14,6 @@
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_listValues
-// @require      https://cdn.jsdelivr.net/gh/rsalvessap/eproc-scripts-gerais@master/shared/eproc-utils.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -24,27 +23,19 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // CONFIGURATION
     // ═══════════════════════════════════════════════════════════════════════════
-    // Ativar logs de debug apenas em desenvolvimento (false em produção)
     const DEBUG = false;
     const log  = (...a) => DEBUG && console.log('[Remigrar]', ...a);
     const warn = (...a) => console.warn('[Remigrar]', ...a);
     const err  = (...a) => console.error('[Remigrar]', ...a);
 
     const CONFIG = {
-        // Storage keys
-        CHECKPOINT_KEY: 'eproc_remigrar_checkpoint',
-        SETTINGS_KEY: 'eproc_remigrar_settings',
-        RESULTS_KEY: 'eproc_remigrar_results',
-
-        // Processing parameters
-        RESULTS_BUFFER_SIZE: 100,     // Export results every N cases
-
-        // Timing
-        SUBMIT_DELAY_MS: 300,         // Small delay before submitting (form prep)
-        RESULT_TIMEOUT_MS: 120000,    // Max wait for server response (2 minutes)
-        RATE_LIMIT_DELAY_MS: 30000,   // Delay when rate-limited
-
-        // URL construída dinamicamente para funcionar em eproc1g e eproc2g
+        CHECKPOINT_KEY:     'eproc_remigrar_checkpoint',
+        SETTINGS_KEY:       'eproc_remigrar_settings',
+        RESULTS_KEY:        'eproc_remigrar_results',
+        RESULTS_BUFFER_SIZE: 100,
+        SUBMIT_DELAY_MS:    300,
+        RESULT_TIMEOUT_MS:  120000,
+        RATE_LIMIT_DELAY_MS: 30000,
         get REMIGRAR_URL() {
             return `${window.location.origin}/eproc/controlador.php?acao=remigrar_processo`;
         }
@@ -54,15 +45,12 @@
     // PAGE DETECTION
     // ═══════════════════════════════════════════════════════════════════════════
     function isRemigrarPage() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('acao') === 'remigrar_processo';
+        return new URLSearchParams(window.location.search).get('acao') === 'remigrar_processo';
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // UTILITY FUNCTIONS
     // ═══════════════════════════════════════════════════════════════════════════
-
-    // Hash simples para identificação de arquivo (primeiros 1000 chars)
     function hashString(str) {
         const sample = str.substring(0, 1000);
         let hash = 0;
@@ -74,12 +62,8 @@
         return hash.toString(16);
     }
 
-    // Usa EprocUtils quando disponível, senão fallback local
-    const _utils = typeof EprocUtils !== 'undefined' ? EprocUtils : null;
-
     function formatTime(ms) {
-        if (_utils) return _utils.formatTime(ms);
-        if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+        if (ms < 60000)   return `${Math.round(ms / 1000)}s`;
         if (ms < 3600000) return `${Math.round(ms / 60000)}min`;
         const h = Math.floor(ms / 3600000);
         const m = Math.round((ms % 3600000) / 60000);
@@ -87,21 +71,18 @@
     }
 
     function formatDateTime(timestamp) {
-        if (_utils) return _utils.formatDateTime(timestamp);
         return new Date(timestamp).toLocaleString('pt-BR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
     }
 
-    // CSV com BOM para compatibilidade com Excel
     function downloadFile(content, filename, mimeType = 'text/csv;charset=utf-8') {
-        const BOM = '\uFEFF';
+        const BOM  = '\uFEFF';
         const blob = new Blob([BOM + content], { type: mimeType });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
-        a.href = url;
-        a.download = filename;
+        a.href = url; a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -109,15 +90,10 @@
     }
 
     function exportResults(results, instanceId = 1) {
-        if (!results || results.length === 0) {
-            log('No results to export');
-            return 0;
-        }
-
+        if (!results || results.length === 0) { log('No results to export'); return 0; }
         const headers = 'caso,timestamp,cas_status,cas_msg,zip_status,zip_msg,vid_status,vid_msg,resumo';
-        const escape = (s) => `"${(s || '').replace(/"/g, '""')}"`;
-
-        const rows = results.map(e => [
+        const escape  = (s) => `"${(s || '').replace(/"/g, '""')}"`;
+        const rows    = results.map(e => [
             e.caseNumber,
             formatDateTime(e.timestamp),
             e.casResult?.type || 'unknown',
@@ -128,29 +104,20 @@
             escape(e.videosResult?.message || ''),
             e.summary || ''
         ].join(','));
-
-        const csv = headers + '\n' + rows.join('\n');
-        const timestamp = new Date().toISOString().slice(0, 10);
-        const filename = `remigrar_${timestamp}_inst${instanceId}_${results.length}casos.csv`;
+        const csv      = headers + '\n' + rows.join('\n');
+        const filename = `remigrar_${new Date().toISOString().slice(0,10)}_inst${instanceId}_${results.length}casos.csv`;
         downloadFile(csv, filename);
-
-        log(`✅ Exported ${results.length} results to ${filename}`);
+        log(`✅ Exported ${results.length} results`);
         return results.length;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // SESSION MANAGER (Multi-Tab Isolation)
+    // SESSION MANAGER
     // ═══════════════════════════════════════════════════════════════════════════
     const Session = {
-        getId() {
-            return sessionStorage.getItem('remigrar_instance_id');
-        },
-        setId(id) {
-            sessionStorage.setItem('remigrar_instance_id', id);
-        },
-        clear() {
-            sessionStorage.removeItem('remigrar_instance_id');
-        }
+        getId()     { return sessionStorage.getItem('remigrar_instance_id'); },
+        setId(id)   { sessionStorage.setItem('remigrar_instance_id', id); },
+        clear()     { sessionStorage.removeItem('remigrar_instance_id'); }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -158,169 +125,93 @@
     // ═══════════════════════════════════════════════════════════════════════════
     const Storage = {
         _getKey(baseKey, instanceId = null) {
-            // Priority: Explicit ID provided > Session ID > Default baseKey
             const id = instanceId || Session.getId();
             return id ? `${baseKey}_inst_${id}` : baseKey;
         },
-
         debugKeys() {
             if (!DEBUG) return;
             try {
                 const keys = GM_listValues();
                 log('🛠️ STORAGE INSPECTOR: Found', keys.length, 'keys');
-                keys.forEach(k => {
-                    const val = GM_getValue(k);
-                    log(` - ${k} (${val ? val.length : 0} bytes)`);
-                });
-            } catch (e) {
-                err('Storage inspect failed:', e);
-            }
+                keys.forEach(k => log(` - ${k} (${GM_getValue(k)?.length || 0} bytes)`));
+            } catch (e) { err('Storage inspect failed:', e); }
         },
-
         loadCheckpoint(instanceId = null) {
             try {
                 const key = this._getKey(CONFIG.CHECKPOINT_KEY, instanceId);
                 log(`Loading checkpoint from: ${key}`);
-                const data = GM_getValue(key, 'null');
-                return JSON.parse(data);
-            } catch (e) {
-                err('Failed to load checkpoint:', e);
-                return null;
-            }
+                return JSON.parse(GM_getValue(key, 'null'));
+            } catch (e) { err('Failed to load checkpoint:', e); return null; }
         },
-
         saveCheckpoint(checkpoint) {
             checkpoint.lastCheckpoint = Date.now();
-            // Always save to the instance defined in the checkpoint itself if available
             const key = this._getKey(CONFIG.CHECKPOINT_KEY, checkpoint.instanceId);
             GM_setValue(key, JSON.stringify(checkpoint));
         },
-
         clearCheckpoint(instanceId = null) {
-            const key = this._getKey(CONFIG.CHECKPOINT_KEY, instanceId);
-            GM_deleteValue(key);
+            GM_deleteValue(this._getKey(CONFIG.CHECKPOINT_KEY, instanceId));
         },
-
         loadSettings() {
-            try {
-                // Settings are global/shared to remember last used values
-                const data = GM_getValue(CONFIG.SETTINGS_KEY, '{}');
-                return JSON.parse(data);
-            } catch (e) {
-                return {};
-            }
+            try { return JSON.parse(GM_getValue(CONFIG.SETTINGS_KEY, '{}')); }
+            catch (e) { return {}; }
         },
-
-        saveSettings(settings) {
-            GM_setValue(CONFIG.SETTINGS_KEY, JSON.stringify(settings));
-        }
+        saveSettings(settings) { GM_setValue(CONFIG.SETTINGS_KEY, JSON.stringify(settings)); }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
     // RESULT CLASSIFIER
     // ═══════════════════════════════════════════════════════════════════════════
     const ResultType = {
-        SUCCESS: 'success',
-        INFO: 'info',
-        ERROR: 'error',
-        EMPTY: 'empty',
+        SUCCESS:      'success',
+        INFO:         'info',
+        ERROR:        'error',
+        EMPTY:        'empty',
         RATE_LIMITED: 'rate_limited',
-        SILENT: 'silent'
+        SILENT:       'silent'
     };
 
-    // Wait for result to appear on page (server response)
     function waitForResult(timeout = 120000) {
         return new Promise((resolve) => {
             const startTime = Date.now();
-
-            // Check immediately first
             const immediate = classifyResponse();
-            if (immediate.type !== ResultType.EMPTY) {
-                log('Result found immediately:', immediate);
-                resolve(immediate);
-                return;
-            }
-
-            // Poll for changes (simpler than MutationObserver for this use case)
+            if (immediate.type !== ResultType.EMPTY) { resolve(immediate); return; }
             const checkInterval = setInterval(() => {
                 const result = classifyResponse();
-                if (result.type !== ResultType.EMPTY) {
-                    clearInterval(checkInterval);
-                    log('Result found after', Date.now() - startTime, 'ms:', result);
-                    resolve(result);
-                    return;
-                }
-
-                if (Date.now() - startTime > timeout) {
-                    clearInterval(checkInterval);
-                    log('Timeout waiting for result');
-                    resolve({ type: ResultType.EMPTY, message: 'Timeout aguardando resposta' });
-                }
-            }, 200); // Check every 200ms
+                if (result.type !== ResultType.EMPTY) { clearInterval(checkInterval); resolve(result); return; }
+                if (Date.now() - startTime > timeout) { clearInterval(checkInterval); resolve({ type: ResultType.EMPTY, message: 'Timeout aguardando resposta' }); }
+            }, 200);
         });
     }
 
     function classifyResponse() {
-        // Get the main content area (exclude our HUD)
-        const mainContent = document.querySelector('.infraAreaTelaD, #divInfraAreaTelaD, main, .conteudo')
-            || document.body;
-
-        // Look for result containers - eProc uses specific patterns
-        // Success: green cards with remigration results
+        const mainContent = document.querySelector('.infraAreaTelaD, #divInfraAreaTelaD, main, .conteudo') || document.body;
         const successCards = mainContent.querySelectorAll('.msg-SUCESSO, .msgSucesso, [class*="sucesso"]:not(.remigrar-hud)');
         for (const card of successCards) {
-            if (card.closest('.remigrar-hud')) continue; // Skip our HUD
+            if (card.closest('.remigrar-hud')) continue;
             const items = card.querySelectorAll('li, .msg-text, p');
-            const count = items.length || 1;
-            log('SUCCESS detected:', count, 'items');
-            return { type: ResultType.SUCCESS, message: `${count} documento(s) remigrado(s)` };
+            return { type: ResultType.SUCCESS, message: `${items.length || 1} documento(s) remigrado(s)` };
         }
-
-        // Info: blue/gray cards for "already OK"
         const infoCards = mainContent.querySelectorAll('.msg-INFO, .msgInfo');
         for (const card of infoCards) {
             if (card.closest('.remigrar-hud')) continue;
             const items = card.querySelectorAll('li, .msg-text, p');
-            const count = items.length || 1;
-            log('INFO detected:', count, 'items');
-            return { type: ResultType.INFO, message: `${count} documento(s) já OK` };
+            return { type: ResultType.INFO, message: `${items.length || 1} documento(s) já OK` };
         }
-
-        // Error: red cards or exception divs
         const errorDiv = mainContent.querySelector('.infraExcecao, .msg-ERRO, .msgErro');
-        if (errorDiv) {
-            const msg = errorDiv.textContent.trim().substring(0, 100);
-            log('ERROR detected:', msg);
-            return { type: ResultType.ERROR, message: msg };
-        }
-
-        // Rate limiting
+        if (errorDiv) return { type: ResultType.ERROR, message: errorDiv.textContent.trim().substring(0, 100) };
         const bodyText = mainContent.textContent || '';
-        if (bodyText.includes('muitas requisições') || bodyText.includes('too many')) {
-            return { type: ResultType.RATE_LIMITED, message: 'Rate limited' };
-        }
-
-        // NEW: Check for silent load (Form present implies page loaded but no message)
-        // This is common for the "Videos" module when there is nothing to do
-        if (document.getElementById('txtNumProcesso')) {
-            return { type: ResultType.SILENT, message: 'Página carregada (sem mensagem da operação)' };
-        }
-
-        // Default: no result found yet (page might still be loading)
+        if (bodyText.includes('muitas requisições') || bodyText.includes('too many')) return { type: ResultType.RATE_LIMITED, message: 'Rate limited' };
+        if (document.getElementById('txtNumProcesso')) return { type: ResultType.SILENT, message: 'Página carregada (sem mensagem da operação)' };
         return { type: ResultType.EMPTY, message: 'Aguardando resultado...' };
     }
 
     function summarizeResults(casResult, zipResult, videosResult) {
         const results = [casResult, zipResult, videosResult];
-
         if (results.some(r => r && r.type === ResultType.RATE_LIMITED)) return 'rate_limited';
-        if (results.some(r => r && r.type === ResultType.ERROR)) return 'error';
-        if (results.some(r => r && r.type === ResultType.SUCCESS)) return 'success';
-
-        // If all are Info or Silent, it's Info (valid/clean)
+        if (results.some(r => r && r.type === ResultType.ERROR))        return 'error';
+        if (results.some(r => r && r.type === ResultType.SUCCESS))      return 'success';
         const nonInfoOrSilent = results.filter(r => r && r.type !== ResultType.INFO && r.type !== ResultType.SILENT);
         if (nonInfoOrSilent.length === 0) return 'info';
-
         return 'empty';
     }
 
@@ -328,273 +219,127 @@
     // FILE PROCESSOR
     // ═══════════════════════════════════════════════════════════════════════════
     const FileProcessor = {
-        _fileCases: [],
-        _manualCases: [],
-        _fileHash: null,
-        _manualHash: null,
-        _fileName: null,
-        activeMode: 'file',
-
-        get allCases() {
-            return this.activeMode === 'manual' ? this._manualCases : this._fileCases;
-        },
-
-        get fileHash() {
-            return this.activeMode === 'manual' ? this._manualHash : this._fileHash;
-        },
-
-        get fileName() {
-            return this.activeMode === 'manual' ? 'Entrada Manual' : this._fileName;
-        },
-
+        _fileCases:   [], _manualCases: [],
+        _fileHash:    null, _manualHash: null, _fileName: null,
+        activeMode:   'file',
+        get allCases()  { return this.activeMode === 'manual' ? this._manualCases : this._fileCases; },
+        get fileHash()  { return this.activeMode === 'manual' ? this._manualHash  : this._fileHash; },
+        get fileName()  { return this.activeMode === 'manual' ? 'Entrada Manual'  : this._fileName; },
         parseFile(content) {
-            return content
-                .split(/[\n\r]+/)
-                .map(line => line.trim().replace(/[^\d.-]/g, ''))
-                .filter(line => line.length >= 20);
+            return content.split(/[\n\r]+/).map(l => l.trim().replace(/[^\d.-]/g, '')).filter(l => l.length >= 20);
         },
-
         loadFile(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const content = e.target.result;
                     this._fileCases = this.parseFile(content);
-                    this._fileHash = hashString(content);
-                    this._fileName = file.name;
-                    resolve({
-                        totalCases: this._fileCases.length,
-                        fileName: file.name,
-                        fileHash: this._fileHash
-                    });
+                    this._fileHash  = hashString(content);
+                    this._fileName  = file.name;
+                    resolve({ totalCases: this._fileCases.length, fileName: file.name, fileHash: this._fileHash });
                 };
                 reader.onerror = reject;
                 reader.readAsText(file);
             });
         },
-
         loadText(text) {
             this._manualCases = this.parseFile(text);
-            this._manualHash = hashString(text);
-            return {
-                totalCases: this._manualCases.length,
-                fileName: 'Entrada Manual',
-                fileHash: this._manualHash
-            };
+            this._manualHash  = hashString(text);
+            return { totalCases: this._manualCases.length, fileName: 'Entrada Manual', fileHash: this._manualHash };
         },
-
         getSlice(instanceId, totalInstances) {
-            const cases = this.allCases;
-            const total = cases.length;
+            const total     = this.allCases.length;
             const sliceSize = Math.ceil(total / totalInstances);
-            const start = (instanceId - 1) * sliceSize;
-            const end = Math.min(start + sliceSize, total);
+            const start     = (instanceId - 1) * sliceSize;
+            const end       = Math.min(start + sliceSize, total);
             return { start, end, count: end - start };
         },
-
-        getCase(absoluteIndex) {
-            return this.allCases[absoluteIndex] || null;
-        }
+        getCase(absoluteIndex) { return this.allCases[absoluteIndex] || null; }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // RESULTS BUFFER (PERSISTED)
+    // RESULTS BUFFER
     // ═══════════════════════════════════════════════════════════════════════════
     const ResultsBuffer = {
-        buffer: [],
-        chunkNumber: 1,
-        totalExported: 0,
-        instanceId: 1,
-
-        // Load persisted buffer from storage
+        buffer: [], chunkNumber: 1, totalExported: 0, instanceId: 1,
         _load(instanceId = null) {
             try {
-                const key = Storage._getKey(CONFIG.RESULTS_KEY, instanceId);
-                const data = GM_getValue(key, 'null');
-                const parsed = JSON.parse(data);
-                if (parsed) {
-                    this.buffer = parsed.buffer || [];
-                    this.chunkNumber = parsed.chunkNumber || 1;
-                    this.totalExported = parsed.totalExported || 0;
-                    this.instanceId = parsed.instanceId || 1;
-                    log(`Loaded ${this.buffer.length} buffered results from storage (${key})`);
-                }
-            } catch (e) {
-                err('Failed to load results buffer:', e);
-            }
+                const key    = Storage._getKey(CONFIG.RESULTS_KEY, instanceId);
+                const parsed = JSON.parse(GM_getValue(key, 'null'));
+                if (parsed) { this.buffer = parsed.buffer || []; this.chunkNumber = parsed.chunkNumber || 1; this.totalExported = parsed.totalExported || 0; this.instanceId = parsed.instanceId || 1; }
+            } catch (e) { err('Failed to load results buffer:', e); }
         },
-
-        // Save buffer to storage
         _save() {
             const key = Storage._getKey(CONFIG.RESULTS_KEY, this.instanceId);
-            GM_setValue(key, JSON.stringify({
-                buffer: this.buffer,
-                chunkNumber: this.chunkNumber,
-                totalExported: this.totalExported,
-                instanceId: this.instanceId
-            }));
+            GM_setValue(key, JSON.stringify({ buffer: this.buffer, chunkNumber: this.chunkNumber, totalExported: this.totalExported, instanceId: this.instanceId }));
         },
-
-        // Initialize - load existing or start fresh
         init(instanceId, startChunk = 1, forceReset = false) {
             this.instanceId = instanceId;
-
-            if (forceReset) {
-                // Starting new session - clear everything
-                this.chunkNumber = startChunk;
-                this.buffer = [];
-                this.totalExported = 0;
-                this._save();
-            } else {
-                // Try to load existing data first
-                this._load(instanceId);
-                if (startChunk > this.chunkNumber) this.chunkNumber = startChunk;
-            }
+            if (forceReset) { this.chunkNumber = startChunk; this.buffer = []; this.totalExported = 0; this._save(); }
+            else { this._load(instanceId); if (startChunk > this.chunkNumber) this.chunkNumber = startChunk; }
         },
-
         add(entry) {
-            this.buffer.push(entry);
-            this._save();  // Persist immediately
-            log(`Added result for ${entry.caseNumber}, buffer size: ${this.buffer.length}`);
-
-            if (this.buffer.length >= CONFIG.RESULTS_BUFFER_SIZE) {
-                this.flush();
-            }
+            this.buffer.push(entry); this._save();
+            if (this.buffer.length >= CONFIG.RESULTS_BUFFER_SIZE) this.flush();
         },
-
         flush() {
-            if (this.buffer.length === 0) {
-                log('Buffer empty, nothing to export');
-                return 0;
-            }
-
+            if (!this.buffer.length) return 0;
             const headers = 'caso,timestamp,cas_status,cas_msg,zip_status,zip_msg,vid_status,vid_msg,resumo';
-            const rows = this.buffer.map(e => {
-                const escape = (s) => `"${(s || '').replace(/"/g, '""')}"`;
-                return [
-                    e.caseNumber,
-                    formatDateTime(e.timestamp),
-                    e.casResult.type,
-                    escape(e.casResult.message),
-                    e.zipResult.type,
-                    escape(e.zipResult.message),
-                    e.videosResult.type,
-                    escape(e.videosResult.message),
-                    e.summary
-                ].join(',');
+            const rows    = this.buffer.map(e => {
+                const esc = (s) => `"${(s || '').replace(/"/g, '""')}"`;
+                return [e.caseNumber, formatDateTime(e.timestamp), e.casResult.type, esc(e.casResult.message), e.zipResult.type, esc(e.zipResult.message), e.videosResult.type, esc(e.videosResult.message), e.summary].join(',');
             });
-
-            const csv = headers + '\n' + rows.join('\n');
-            const filename = `remigrar_results_inst${this.instanceId}_chunk${String(this.chunkNumber).padStart(3, '0')}.csv`;
-            downloadFile(csv, filename);
-
+            const filename = `remigrar_results_inst${this.instanceId}_chunk${String(this.chunkNumber).padStart(3,'0')}.csv`;
+            downloadFile(headers + '\n' + rows.join('\n'), filename);
             const exportedCount = this.buffer.length;
-            this.totalExported += exportedCount;
-            this.chunkNumber++;
-            this.buffer = [];
-            this._save();  // Persist the cleared buffer
-
-            log(`✅ Exported chunk ${this.chunkNumber - 1} (${exportedCount} results)`);
+            this.totalExported += exportedCount; this.chunkNumber++; this.buffer = []; this._save();
             return exportedCount;
         },
-
-        // Clear all persisted data (for new session)
-        clear() {
-            this.buffer = [];
-            this.chunkNumber = 1;
-            this.totalExported = 0;
-            const key = Storage._getKey(CONFIG.RESULTS_KEY, this.instanceId);
-            GM_deleteValue(key);
-            log('Results buffer cleared');
-        },
-
-        getStats() {
-            return {
-                buffered: this.buffer.length,
-                exported: this.totalExported,
-                chunks: this.chunkNumber - 1
-            };
-        }
+        clear() { this.buffer = []; this.chunkNumber = 1; this.totalExported = 0; GM_deleteValue(Storage._getKey(CONFIG.RESULTS_KEY, this.instanceId)); },
+        getStats() { return { buffered: this.buffer.length, exported: this.totalExported, chunks: this.chunkNumber - 1 }; }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
     // AUTOMATION ENGINE
     // ═══════════════════════════════════════════════════════════════════════════
     const Automation = {
-        isRunning: false,
-        isPaused: false,
-        currentCheckpoint: null,
-        onProgressUpdate: null,
-        onStatusUpdate: null,
-        retryCount: 0,
+        isRunning: false, isPaused: false, currentCheckpoint: null,
+        onProgressUpdate: null, onStatusUpdate: null, retryCount: 0,
 
         async start(instanceId, totalInstances) {
-            // Lock session to this instance
             Session.setId(instanceId);
-
             const slice = FileProcessor.getSlice(instanceId, totalInstances);
-
-            // Build queue of all case numbers for this slice
-            // This allows processing without needing file after page reloads
             const caseQueue = [];
-            for (let i = slice.start; i < slice.end; i++) {
-                caseQueue.push(FileProcessor.getCase(i));
-            }
-
+            for (let i = slice.start; i < slice.end; i++) caseQueue.push(FileProcessor.getCase(i));
             this.currentCheckpoint = {
-                inputFileName: FileProcessor.fileName,
-                inputFileHash: FileProcessor.fileHash,
-                instanceId: instanceId,
-                totalInstances: totalInstances,
-                sliceStart: slice.start,
-                sliceEnd: slice.end,
-                currentIndex: slice.start,
-                currentStep: 'cas',
-                chunkNumber: 1,
-                startedAt: Date.now(),
-                processedCount: 0,
-                results: {},
-                caseQueue: caseQueue, // All cases for this slice stored in checkpoint
-                isActive: true
+                inputFileName: FileProcessor.fileName, inputFileHash: FileProcessor.fileHash,
+                instanceId, totalInstances, sliceStart: slice.start, sliceEnd: slice.end,
+                currentIndex: slice.start, currentStep: 'cas', chunkNumber: 1,
+                startedAt: Date.now(), processedCount: 0, results: {}, caseQueue, isActive: true
             };
-
             Storage.saveCheckpoint(this.currentCheckpoint);
-
-            this.isRunning = true;
-            this.isPaused = false;
+            this.isRunning = true; this.isPaused = false;
             this.processNext();
         },
 
         resume(checkpoint) {
-            // Ensure session matches checkpoint
-            if (checkpoint.instanceId) {
-                Session.setId(checkpoint.instanceId);
-            }
-            this.currentCheckpoint = checkpoint;
-            this.isRunning = true;
-            this.isPaused = false;
+            if (checkpoint.instanceId) Session.setId(checkpoint.instanceId);
+            this.currentCheckpoint = checkpoint; this.isRunning = true; this.isPaused = false;
             log('Resuming from checkpoint:', checkpoint);
         },
 
         pause() {
             this.isPaused = true;
-            if (this.currentCheckpoint) {
-                this.currentCheckpoint.isActive = false;
-            }
+            if (this.currentCheckpoint) this.currentCheckpoint.isActive = false;
             Storage.saveCheckpoint(this.currentCheckpoint);
             this.updateStatus('⏸️ Pausado');
         },
 
-        unpause() {
-            this.isPaused = false;
-            this.processNext();
-        },
+        unpause()        { this.isPaused = false; this.processNext(); },
+        updateStatus(m)  { if (this.onStatusUpdate)   this.onStatusUpdate(m); },
 
         stop() {
-            this.isRunning = false;
-            this.isPaused = false;
-
-            // Export any results we have
+            this.isRunning = false; this.isPaused = false;
             const cp = this.currentCheckpoint || Storage.loadCheckpoint();
             if (cp && cp.completedResults && cp.completedResults.length > 0) {
                 exportResults(cp.completedResults, cp.instanceId);
@@ -602,169 +347,83 @@
             } else {
                 this.updateStatus('⏹️ Parado');
             }
-
-            Storage.clearCheckpoint();
-            Session.clear(); // Clear session binding on stop
-        },
-
-        updateStatus(message) {
-            if (this.onStatusUpdate) this.onStatusUpdate(message);
+            Storage.clearCheckpoint(); Session.clear();
         },
 
         updateProgress() {
-            if (this.onProgressUpdate) {
-                const cp = this.currentCheckpoint;
-                const total = cp.sliceEnd - cp.sliceStart;
-                const current = cp.currentIndex - cp.sliceStart;
-                const progress = current / total;
-                const elapsed = Date.now() - cp.startedAt;
-                const eta = progress > 0 ? (elapsed / progress) - elapsed : 0;
-
-                const queueIndex = cp.currentIndex - cp.sliceStart;
-                const caseNumber = cp.currentCaseNumber ||
-                    (cp.caseQueue && cp.caseQueue[queueIndex]) ||
-                    `#${cp.currentIndex}`;
-
-                const completedCount = (cp.completedResults || []).length;
-
-                this.onProgressUpdate({
-                    current: current,
-                    total: total,
-                    percent: Math.round(progress * 100),
-                    currentCase: caseNumber,
-                    step: cp.currentStep.toUpperCase(),
-                    eta: formatTime(eta),
-                    completed: completedCount
-                });
-
-                // CRITICAL: Save checkpoint on progress update to ensure we never lose state
-                // even if browser crashes mid-operation
-                Storage.saveCheckpoint(cp);
-            }
+            if (!this.onProgressUpdate) return;
+            const cp      = this.currentCheckpoint;
+            const total   = cp.sliceEnd - cp.sliceStart;
+            const current = cp.currentIndex - cp.sliceStart;
+            const progress = current / total;
+            const elapsed  = Date.now() - cp.startedAt;
+            const eta      = progress > 0 ? (elapsed / progress) - elapsed : 0;
+            const queueIndex   = cp.currentIndex - cp.sliceStart;
+            const caseNumber   = cp.currentCaseNumber || (cp.caseQueue && cp.caseQueue[queueIndex]) || `#${cp.currentIndex}`;
+            const completedCount = (cp.completedResults || []).length;
+            this.onProgressUpdate({ current, total, percent: Math.round(progress * 100), currentCase: caseNumber, step: cp.currentStep.toUpperCase(), eta: formatTime(eta), completed: completedCount });
+            Storage.saveCheckpoint(cp);
         },
 
         async processNext() {
-            // Log entry to debug "going nowhere" issues
             log(`processNext called. Running: ${this.isRunning}, Paused: ${this.isPaused}`);
-
-            // Double check session ID integrity
-            const currentSession = Session.getId();
-            if (this.currentCheckpoint && currentSession && this.currentCheckpoint.instanceId != currentSession) {
-                err(`Session mismatch! Stored: ${this.currentCheckpoint.instanceId} vs Session: ${currentSession}`);
-                // This shouldn't happen with the new isolation, but good to catch
-            }
-
-            if (!this.isRunning || this.isPaused) {
-                log('processNext aborted (not running or paused)');
-                return;
-            }
+            if (!this.isRunning || this.isPaused) { log('processNext aborted'); return; }
 
             const cp = this.currentCheckpoint;
-
-            // 1. Check if we're done
             if (cp.currentIndex >= cp.sliceEnd) {
-                // Export results from checkpoint
                 const results = cp.completedResults || [];
-                if (results.length > 0) {
-                    exportResults(results, cp.instanceId);
-                }
-
-                const totalProcessed = results.length;
-                Storage.clearCheckpoint();
-                Session.clear();
+                if (results.length > 0) exportResults(results, cp.instanceId);
+                Storage.clearCheckpoint(); Session.clear();
                 this.isRunning = false;
-                this.updateStatus(`✅ Concluído! ${totalProcessed} casos processados e exportados.`);
-                alert(`Processamento concluído!\n${totalProcessed} casos exportados para CSV.`);
+                this.updateStatus(`✅ Concluído! ${results.length} casos processados e exportados.`);
+                alert(`Processamento concluído!\n${results.length} casos exportados para CSV.`);
                 return;
             }
 
-            // 2. Get case number for current step
             const queueIndex = cp.currentIndex - cp.sliceStart;
             let caseNumber;
+            if (cp.currentStep !== 'cas' && cp.currentCaseNumber) caseNumber = cp.currentCaseNumber;
+            else if (cp.caseQueue && cp.caseQueue[queueIndex])    caseNumber = cp.caseQueue[queueIndex];
+            else                                                    caseNumber = FileProcessor.getCase(cp.currentIndex);
 
-            if (cp.currentStep !== 'cas' && cp.currentCaseNumber) {
-                // Continuing same case (ZIP or VID step)
-                caseNumber = cp.currentCaseNumber;
-            } else if (cp.caseQueue && cp.caseQueue[queueIndex]) {
-                // Starting new case
-                caseNumber = cp.caseQueue[queueIndex];
-            } else {
-                // Fallback
-                caseNumber = FileProcessor.getCase(cp.currentIndex);
-            }
+            if (!caseNumber) { err('No case number at:', cp.currentIndex); this.updateStatus('⚠️ Erro: fila não disponível'); this.isRunning = false; return; }
 
-            if (!caseNumber) {
-                err('No case number available at index:', cp.currentIndex);
-                this.updateStatus('⚠️ Erro: fila de casos não disponível');
-                this.isRunning = false;
-                return;
-            }
-
-            // 3. Determine module
             let module;
             if (cp.currentStep === 'cas') module = 'documentos_cas';
             else if (cp.currentStep === 'zip') module = 'documentos_zip';
             else module = 'videos';
 
-            // 4. Fill form (works on both main page and result page)
-            const input = document.getElementById('txtNumProcesso');
+            const input  = document.getElementById('txtNumProcesso');
             const select = document.getElementById('selModulo');
             const button = document.querySelector('button[type="submit"].infraButton');
 
             if (!input || !select || !button) {
-                log('Form elements not found — Input:', !!input, 'Select:', !!select, 'Button:', !!button, '— redirecting...');
-                // Save state so we resume immediately after load
-                cp.currentCaseNumber = caseNumber;
-                cp.isActive = true;
+                cp.currentCaseNumber = caseNumber; cp.isActive = true;
                 Storage.saveCheckpoint(cp);
-                window.location.href = CONFIG.REMIGRAR_URL;
-                return;
+                window.location.href = CONFIG.REMIGRAR_URL; return;
             }
 
-            input.value = caseNumber;
-            select.value = module;
-
-            // Trigger events to ensure internal state updates (React/Frameworks/Validation)
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.value  = caseNumber; select.value = module;
+            input.dispatchEvent(new Event('input',  { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
             select.dispatchEvent(new Event('change', { bubbles: true }));
 
             this.updateProgress();
             this.updateStatus(`🔄 ${caseNumber} (${cp.currentStep.toUpperCase()})`);
 
-            // 5. Update checkpoint BEFORE submit
-            cp.currentCaseNumber = caseNumber;
-            cp.awaitingResult = true;
+            cp.currentCaseNumber = caseNumber; cp.awaitingResult = true;
             Storage.saveCheckpoint(cp);
 
-            // 6. Submit after brief delay
-            log(`Submitting: ${caseNumber} / ${module}`);
             setTimeout(() => {
-                // Determine if we need to clean up first (try to find and click 'Limpar' if exists? No, relying on overwrite)
-
-                // Watchdog: If page doesn't unload/reload within 10 seconds, assume stuck and retry
                 const watchdogId = setTimeout(() => {
-                    warn('⚠️ Submission watchdog triggered - page did not reload.');
-
-                    // Revert state to retry this step
+                    warn('⚠️ Submission watchdog triggered');
                     const currentCp = Storage.loadCheckpoint();
                     if (currentCp && currentCp.awaitingResult) {
-                        currentCp.awaitingResult = false; // Cancel expectation of result since we failed to submit
-                        Storage.saveCheckpoint(currentCp);
-
-                        log('Redirecting to clean page to retry...');
+                        currentCp.awaitingResult = false; Storage.saveCheckpoint(currentCp);
                         window.location.href = CONFIG.REMIGRAR_URL;
                     }
-                }, 10000); // 10 seconds timeout
-
-                // Attempt submit
-                try {
-                    button.click();
-                    // If successful, page unloads and watchdog is killed by browser
-                } catch (e) {
-                    err('Submit click failed:', e);
-                    // Watchdog will catch this if logic flow continues
-                }
+                }, 10000);
+                try { button.click(); } catch (e) { err('Submit click failed:', e); }
             }, CONFIG.SUBMIT_DELAY_MS);
         },
 
@@ -777,78 +436,30 @@
                 log(`Waiting for result: ${caseNumber} (${cp.currentStep})`);
                 this.updateStatus?.(`⏳ ${caseNumber} (${cp.currentStep.toUpperCase()})`);
 
-                // Wait for result to appear
                 const result = await waitForResult(CONFIG.RESULT_TIMEOUT_MS);
                 log('Got result:', result);
 
-                // Handle rate limiting
                 if (result.type === ResultType.RATE_LIMITED) {
                     warn('Rate limited, waiting...');
                     this.updateStatus?.(`⚠️ Rate limited - aguardando ${CONFIG.RATE_LIMIT_DELAY_MS / 1000}s`);
-                    setTimeout(() => {
-                        cp.awaitingResult = false;
-                        Storage.saveCheckpoint(cp);
-                        this.currentCheckpoint = cp;
-                        this.processNext();
-                    }, CONFIG.RATE_LIMIT_DELAY_MS);
+                    setTimeout(() => { cp.awaitingResult = false; Storage.saveCheckpoint(cp); this.currentCheckpoint = cp; this.processNext(); }, CONFIG.RATE_LIMIT_DELAY_MS);
                     return true;
                 }
 
-                // Store result for current step
-                log('Storing result for step:', cp.currentStep);
                 if (!cp.results) cp.results = {};
-
-                if (cp.currentStep === 'cas') {
-                    cp.results.casResult = result;
-                    cp.currentStep = 'zip';
-                    log('Advanced to ZIP');
-                } else if (cp.currentStep === 'zip') {
-                    cp.results.zipResult = result;
-                    cp.currentStep = 'videos';
-                    log('Advanced to VIDEOS');
-                } else {
+                if (cp.currentStep === 'cas')       { cp.results.casResult = result; cp.currentStep = 'zip'; }
+                else if (cp.currentStep === 'zip')  { cp.results.zipResult = result; cp.currentStep = 'videos'; }
+                else {
                     cp.results.videosResult = result;
-                    log('Finished case');
-
-                    // All steps done - save entry
-                    const entry = {
-                        caseNumber: caseNumber,
-                        timestamp: Date.now(),
-                        casResult: cp.results.casResult,
-                        zipResult: cp.results.zipResult,
-                        videosResult: cp.results.videosResult,
-                        summary: summarizeResults(
-                            cp.results.casResult,
-                            cp.results.zipResult,
-                            cp.results.videosResult
-                        )
-                    };
-
+                    const entry = { caseNumber, timestamp: Date.now(), casResult: cp.results.casResult, zipResult: cp.results.zipResult, videosResult: cp.results.videosResult, summary: summarizeResults(cp.results.casResult, cp.results.zipResult, cp.results.videosResult) };
                     if (!cp.completedResults) cp.completedResults = [];
                     cp.completedResults.push(entry);
-                    log(`✅ ${caseNumber} done. Total: ${cp.completedResults.length}`);
-
-                    // Move to next case
-                    cp.currentIndex++;
-                    cp.currentStep = 'cas';
-                    cp.results = {};
+                    cp.currentIndex++; cp.currentStep = 'cas'; cp.results = {};
                 }
 
-                log('Saving checkpoint...');
-                cp.awaitingResult = false;
-                Storage.saveCheckpoint(cp);
-                this.currentCheckpoint = cp;
-                log('Checkpoint saved.');
+                cp.awaitingResult = false; Storage.saveCheckpoint(cp); this.currentCheckpoint = cp;
 
-                // Continue immediately on the same page
-                log('handleResult calling processNext(). isRunning:', this.isRunning);
-
-                // Critical safety check
-                if (!this.isRunning) {
-                    warn('handleResult detected stopped state, forcing resume');
-                    this.isRunning = true;
-                }
-
+                if (!this.isRunning) { warn('handleResult: forcing resume'); this.isRunning = true; }
                 this.processNext();
                 return true;
             } catch (error) {
@@ -858,828 +469,418 @@
             }
         },
 
-
-
         getProgress() {
             const cp = this.currentCheckpoint || Storage.loadCheckpoint();
             if (!cp) return null;
-
-            const total = cp.sliceEnd - cp.sliceStart;
-            const current = cp.currentIndex - cp.sliceStart;
-            const queueIndex = cp.currentIndex - cp.sliceStart;
-
+            const total    = cp.sliceEnd - cp.sliceStart;
+            const current  = cp.currentIndex - cp.sliceStart;
+            const queueIdx = cp.currentIndex - cp.sliceStart;
             return {
-                current,
-                total,
-                percent: Math.round((current / total) * 100),
-                currentCase: cp.currentCaseNumber || (cp.caseQueue && cp.caseQueue[queueIndex]) || `#${cp.currentIndex}`,
+                current, total, percent: Math.round((current / total) * 100),
+                currentCase: cp.currentCaseNumber || (cp.caseQueue && cp.caseQueue[queueIdx]) || `#${cp.currentIndex}`,
                 step: cp.currentStep ? cp.currentStep.toUpperCase() : 'N/A',
-                instanceId: cp.instanceId,
-                isRunning: this.isRunning,
-                isPaused: this.isPaused,
+                instanceId: cp.instanceId, isRunning: this.isRunning, isPaused: this.isPaused,
                 completed: (cp.completedResults || []).length
             };
         }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // HUD COMPONENT
+    // HUD COMPONENT — usa Bootstrap nativo do eProc
     // ═══════════════════════════════════════════════════════════════════════════
-    function createHUD() {
-        const shadowHost = document.createElement('div');
-        Object.assign(shadowHost.style, { display: 'block', width: '100%', marginBottom: '16px' });
-        const shadow = shadowHost.attachShadow({ mode: 'open' });
+    function injetarEstilosHUD() {
+        if (document.getElementById('remigrar-hud-styles')) return;
+        const s = document.createElement('style');
+        s.id = 'remigrar-hud-styles';
+        s.textContent = `
+            #remigrar-hud-wrapper { margin-bottom: 16px; }
+            #remigrar-hud-wrapper .remigrar-header {
+                background: #0887b2;
+                color: white;
+                padding: 8px 14px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-weight: bold;
+                font-size: 13px;
+                border-radius: 4px 4px 0 0;
+            }
+            #remigrar-hud-body.collapsed { display: none !important; }
+            #remigrar-hud-wrapper .remigrar-section-title {
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: #0887b2;
+                border-bottom: 1px solid #dee2e6;
+                padding-bottom: 4px;
+                margin-bottom: 8px;
+                margin-top: 10px;
+            }
+            #remigrar-hud-wrapper .remigrar-section-title:first-child { margin-top: 0; }
+            #remigrar-hud-wrapper .mode-hidden { display: none !important; }
+            #remigrar-hud-wrapper #remigrar-controls .btn,
+            #remigrar-hud-wrapper #remigrar-mode-toggle .btn { flex: 1; }
+            #remigrar-hud-wrapper .processing-indicator { animation: remigrar-pulse 1.5s infinite; }
+            @keyframes remigrar-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        `;
+        (document.head || document.documentElement).appendChild(s);
+    }
 
-        shadow.innerHTML = `
-            <style>
-                /* Shadow DOM — fully isolated, no !important needed */
-                *, *::before, *::after {
-                    box-sizing: border-box;
-                    font-family: Arial, sans-serif;
-                }
-                #remigrar-hud {
-                    display: block;
-                    width: 100%;
-                    background: #ffffff;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                    font-size: 13px;
-                    color: #333;
-                }
-                #remigrar-hud-header {
-                    background: #2168B5;
-                    color: #fff;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 10px 14px;
-                    font-weight: bold;
-                    border-radius: 3px 3px 0 0;
-                }
-                #remigrar-hud-body {
-                    background: #e3f2fd;
-                    padding: 12px;
-                }
-                #remigrar-hud-body.collapsed {
-                    display: none !important;
-                }
-                #remigrar-columns {
-                    display: flex;
-                    gap: 12px;
-                    align-items: flex-start;
-                }
-                #remigrar-left, #remigrar-right {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                }
-                .remigrar-section {
-                    background: #fff;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    padding: 10px;
-                }
-                .remigrar-section-title {
-                    color: #2168B5;
-                    font-weight: bold;
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.3px;
-                    border-bottom: 1px solid #ccc;
-                    padding-bottom: 5px;
-                    margin-bottom: 8px;
-                }
-                button {
-                    display: inline-block;
-                    padding: 7px 10px;
-                    border: none;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-size: 12px;
-                    font-family: Arial, sans-serif;
-                    line-height: normal;
-                }
-                .remigrar-btn {
-                    flex: 1;
-                }
-                .remigrar-btn:disabled {
-                    opacity: 0.45;
-                    cursor: not-allowed;
-                }
-                .remigrar-btn-primary {
-                    background: #2e7d32;
-                    color: white;
-                }
-                .remigrar-btn-warning {
-                    background: #bf6000;
-                    color: white;
-                }
-                .remigrar-btn-danger {
-                    background: #c62828;
-                    color: white;
-                }
-                .remigrar-btn-secondary {
-                    background: #546e7a;
-                    color: white;
-                }
-                #remigrar-file-input {
-                    display: none;
-                }
-                .remigrar-file-btn {
-                    display: block;
-                    width: 100%;
-                    padding: 8px;
-                    background: #2168B5;
-                    color: white;
-                    font-weight: bold;
-                    cursor: pointer;
-                    text-align: center;
-                    font-size: 12px;
-                    box-sizing: border-box;
-                    border-radius: 3px;
-                }
-                .remigrar-file-info {
-                    background: #f5f5f5;
-                    padding: 8px 10px;
-                    border-radius: 3px;
-                    margin-bottom: 8px;
-                    border: 1px solid #ccc;
-                    font-size: 12px;
-                    color: #444;
-                }
-                .remigrar-file-info.empty {
-                    text-align: center;
-                    color: #888;
-                }
-                .remigrar-instance-row {
-                    display: flex;
-                    gap: 8px;
-                    margin-bottom: 8px;
-                }
-                .remigrar-instance-group {
-                    flex: 1;
-                }
-                .remigrar-instance-group label {
-                    display: block;
-                    font-size: 11px;
-                    color: #555;
-                    margin-bottom: 3px;
-                }
-                .remigrar-instance-group input {
-                    width: 100%;
-                    padding: 6px;
-                    border: 1px solid #aaa;
-                    border-radius: 3px;
-                    text-align: center;
-                    font-size: 13px;
-                }
-                .remigrar-slice-info {
-                    background: #f5f5f5;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    padding: 6px 8px;
-                    font-size: 12px;
-                    text-align: center;
-                    color: #555;
-                }
-                #remigrar-controls {
-                    display: flex;
-                    gap: 6px;
-                }
-                #remigrar-progress-bar {
-                    width: 100%;
-                    height: 18px;
-                    background: #e0e0e0;
-                    border: 1px solid #ccc;
-                    border-radius: 2px;
-                    overflow: hidden;
-                    position: relative;
-                    margin-bottom: 8px;
-                }
-                #remigrar-progress-fill {
-                    height: 100%;
-                    background: #2e7d32;
-                    width: 0%;
-                    transition: width 0.3s ease;
-                }
-                #remigrar-progress-text {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%,-50%);
-                    font-size: 11px;
-                    font-weight: bold;
-                    color: #333;
-                }
-                #remigrar-status {
-                    background: #f5f5f5;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    padding: 8px 10px;
-                    font-size: 12px;
-                    line-height: 1.7;
-                }
-                .status-row {
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .status-label {
-                    color: #555;
-                }
-                .status-value {
-                    font-weight: bold;
-                    color: #222;
-                }
-                #remigrar-export-stats {
-                    background: #e3f2fd;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                    padding: 8px 10px;
-                    font-size: 12px;
-                    margin-bottom: 8px;
-                }
-                .mode-hidden {
-                    display: none !important;
-                }
-                .input-count-badge {
-                    float: right;
-                    background: #e3f2fd;
-                    padding: 1px 6px;
-                    border-radius: 10px;
-                    font-size: 10px;
-                    color: #555;
-                    font-weight: normal;
-                }
-                .resume-banner {
-                    background: #fff3e0;
-                    border: 1px solid #bf6000;
-                    padding: 12px;
-                    border-radius: 3px;
-                    margin-bottom: 8px;
-                    text-align: center;
-                    color: #333;
-                }
-                .resume-banner-title {
-                    font-weight: bold;
-                    margin-bottom: 4px;
-                    color: #bf6000;
-                    display: block;
-                }
-                .resume-banner-info {
-                    font-size: 11px;
-                    color: #555;
-                    margin-bottom: 8px;
-                    display: block;
-                }
-                .resume-banner-buttons {
-                    display: flex;
-                    gap: 6px;
-                    justify-content: center;
-                }
-                #remigrar-manual-input {
-                    width: 100%;
-                    height: 120px;
-                    border: 1px solid #aaa;
-                    border-radius: 3px;
-                    color: #333;
-                    padding: 8px;
-                    font-family: Consolas, monospace;
-                    font-size: 12px;
-                    resize: vertical;
-                    box-sizing: border-box;
-                    margin-bottom: 5px;
-                    background: #fff;
-                }
-                #remigrar-hud-toggle {
-                    background: rgba(255,255,255,0.2);
-                    border: 1px solid rgba(255,255,255,0.4);
-                    color: white;
-                    width: 22px;
-                    height: 22px;
-                    border-radius: 3px;
-                    cursor: pointer;
-                    font-size: 13px;
-                    padding: 0;
-                }
-                #remigrar-mode-toggle {
-                    display: flex;
-                    border: 1px solid #ccc;
-                    border-radius: 2px;
-                    overflow: hidden;
-                    background: #f5f5f5;
-                }
-                .mode-tab {
-                    flex: 1;
-                    padding: 6px 10px;
-                    font-size: 12px;
-                    font-weight: bold;
-                    border: none;
-                    background: #f5f5f5;
-                    color: #555;
-                    cursor: pointer;
-                    border-right: 1px solid #ccc;
-                }
-                .mode-tab:last-child { border-right: none; }
-                .mode-tab.active {
-                    background: #2168B5;
-                    color: #fff;
-                }
-                .mode-tab:hover:not(.active) { background: #e8e8e8; }
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-                .processing-indicator {
-                    animation: pulse 1.5s infinite;
-                }
-            </style>
-            <div id="remigrar-hud">
-                <div id="remigrar-hud-header">
+    function createHUD() {
+        injetarEstilosHUD();
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'remigrar-hud-wrapper';
+        wrapper.innerHTML = `
+            <div class="card" style="border-color:#CBD6E5">
+                <div class="remigrar-header">
                     <span>Remigrar por Módulo</span>
-                    <button id="remigrar-hud-toggle">−</button>
+                    <button id="remigrar-hud-toggle" class="btn btn-sm" style="color:white;border:1px solid rgba(255,255,255,0.5);padding:1px 7px;line-height:1.4">−</button>
                 </div>
-                <div id="remigrar-hud-body">
-                    <div id="remigrar-resume-banner" style="display:none;"></div>
-                    <div id="remigrar-columns">
-                        <div id="remigrar-left">
-                            <div id="remigrar-mode-toggle">
-                                <button id="remigrar-mode-casual" class="mode-tab active">📝 Lista manual</button>
-                                <button id="remigrar-mode-bulk" class="mode-tab">📁 Arquivo</button>
+                <div class="card-body p-2" id="remigrar-hud-body">
+
+                    <!-- Banner de retomada -->
+                    <div id="remigrar-resume-banner" class="alert alert-warning p-2 mb-2 text-center" style="display:none"></div>
+
+                    <div class="row">
+                        <!-- ── COLUNA ESQUERDA: Entrada ── -->
+                        <div class="col-6">
+
+                            <!-- Toggle de modo -->
+                            <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-mode-toggle">
+                                <button id="remigrar-mode-casual" class="btn btn-secondary">📝 Lista manual</button>
+                                <button id="remigrar-mode-bulk"   class="btn btn-outline-secondary">📁 Arquivo</button>
                             </div>
-                            <!-- CASUAL -->
+
+                            <!-- MODO MANUAL -->
                             <div id="remigrar-casual-container">
-                                <div class="remigrar-section">
-                                    <div class="remigrar-section-title">📝 Entrada Manual <span id="remigrar-manual-count" class="input-count-badge">0</span></div>
-                                    <textarea id="remigrar-manual-input" placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
-                                    <div id="remigrar-manual-status" class="remigrar-slice-info" style="text-align:left;color:#666;padding:5px;">Cole a lista para iniciar</div>
+                                <div class="remigrar-section-title">
+                                    Entrada Manual
+                                    <span id="remigrar-manual-count" class="badge badge-info ml-1">0</span>
                                 </div>
+                                <textarea id="remigrar-manual-input"
+                                    class="form-control form-control-sm mb-1"
+                                    rows="5"
+                                    style="font-family:Consolas,monospace;resize:vertical"
+                                    placeholder="Cole os números dos processos aqui (um por linha)..."></textarea>
+                                <div id="remigrar-manual-status" class="small text-muted">Cole a lista para iniciar</div>
                             </div>
-                            <!-- BULK -->
+
+                            <!-- MODO ARQUIVO -->
                             <div id="remigrar-bulk-container" class="mode-hidden">
-                                <div class="remigrar-section">
-                                    <div class="remigrar-section-title">📁 Arquivo de Entrada</div>
-                                    <div id="remigrar-file-info" class="remigrar-file-info empty">Nenhum arquivo selecionado</div>
-                                    <input type="file" id="remigrar-file-input" accept=".txt,.csv">
-                                    <label for="remigrar-file-input" class="remigrar-file-btn">📂 Selecionar Arquivo</label>
-                                </div>
-                                <div class="remigrar-section" style="margin-top:8px">
-                                    <div class="remigrar-section-title">🖥️ Multi-Instância</div>
-                                    <div class="remigrar-instance-row">
-                                        <div class="remigrar-instance-group"><label>Esta Instância</label><input type="number" id="remigrar-instance-id" min="1" value="1"></div>
-                                        <div class="remigrar-instance-group"><label>Total de Instâncias</label><input type="number" id="remigrar-total-instances" min="1" value="1"></div>
+                                <div class="remigrar-section-title">Arquivo de Entrada</div>
+                                <div id="remigrar-file-info" class="alert alert-secondary p-2 mb-2 small">Nenhum arquivo selecionado</div>
+                                <input type="file" id="remigrar-file-input" accept=".txt,.csv" style="display:none">
+                                <label for="remigrar-file-input" class="btn btn-sm btn-primary btn-block mb-2">📂 Selecionar Arquivo</label>
+
+                                <div class="remigrar-section-title">Multi-Instância</div>
+                                <div class="form-row">
+                                    <div class="form-group col mb-1">
+                                        <label class="small mb-0">Esta Instância</label>
+                                        <input type="number" id="remigrar-instance-id" class="form-control form-control-sm text-center" min="1" value="1">
                                     </div>
-                                    <div id="remigrar-slice-info" class="remigrar-slice-info">Carregue um arquivo para ver a distribuição</div>
+                                    <div class="form-group col mb-1">
+                                        <label class="small mb-0">Total de Instâncias</label>
+                                        <input type="number" id="remigrar-total-instances" class="form-control form-control-sm text-center" min="1" value="1">
+                                    </div>
                                 </div>
+                                <div id="remigrar-slice-info" class="small text-muted text-center">Carregue um arquivo para ver a distribuição</div>
                             </div>
                         </div>
-                        <div id="remigrar-right">
-                            <div class="remigrar-section">
-                                <div class="remigrar-section-title">🎮 Controles</div>
-                                <div id="remigrar-controls">
-                                    <button id="remigrar-start" class="remigrar-btn remigrar-btn-primary" disabled>▶ Iniciar</button>
-                                    <button id="remigrar-pause" class="remigrar-btn remigrar-btn-warning" disabled>⏸ Pausar</button>
-                                    <button id="remigrar-stop" class="remigrar-btn remigrar-btn-danger" disabled>⏹ Parar</button>
-                                </div>
+
+                        <!-- ── COLUNA DIREITA: Controles + Progresso + Resultados ── -->
+                        <div class="col-6">
+
+                            <div class="remigrar-section-title">Controles</div>
+                            <div class="btn-group btn-group-sm w-100 mb-2" id="remigrar-controls">
+                                <button id="remigrar-start" class="btn btn-primary"  disabled>▶ Iniciar</button>
+                                <button id="remigrar-pause" class="btn btn-warning"  disabled>⏸ Pausar</button>
+                                <button id="remigrar-stop"  class="btn btn-danger"   disabled>⏹ Parar</button>
                             </div>
-                            <div class="remigrar-section">
-                                <div class="remigrar-section-title">📊 Progresso</div>
-                                <div id="remigrar-progress-bar"><div id="remigrar-progress-fill"></div><span id="remigrar-progress-text">0%</span></div>
-                                <div id="remigrar-status">
-                                    <div class="status-row"><span class="status-label">Status:</span><span class="status-value" id="status-state">Aguardando...</span></div>
-                                    <div class="status-row"><span class="status-label">Caso Atual:</span><span class="status-value" id="status-case">-</span></div>
-                                    <div class="status-row"><span class="status-label">Etapa:</span><span class="status-value" id="status-step">-</span></div>
-                                    <div class="status-row"><span class="status-label">ETA:</span><span class="status-value" id="status-eta">-</span></div>
-                                    <div class="status-row"><span class="status-label">Velocidade:</span><span class="status-value" id="status-rate">-</span></div>
-                                </div>
+
+                            <div class="remigrar-section-title">Progresso</div>
+                            <div class="progress mb-2" style="height:18px">
+                                <div id="remigrar-progress-fill" class="progress-bar bg-success" role="progressbar"
+                                    style="width:0%;font-size:11px;font-weight:bold;transition:width 0.3s ease">0%</div>
                             </div>
-                            <div class="remigrar-section">
-                                <div class="remigrar-section-title">📋 Resultados</div>
-                                <div id="remigrar-export-stats"><div class="status-row"><span class="status-label">Casos Completos:</span><span class="status-value" id="completed-count">0</span></div></div>
-                                <button id="remigrar-export-now" class="remigrar-btn remigrar-btn-secondary" style="margin-top:8px;width:100%;">📥 Exportar Agora</button>
+                            <div id="remigrar-status" class="small mb-2" style="line-height:1.8">
+                                <div class="d-flex justify-content-between"><span class="text-muted">Status:</span>     <span class="font-weight-bold" id="status-state">Aguardando...</span></div>
+                                <div class="d-flex justify-content-between"><span class="text-muted">Caso Atual:</span> <span class="font-weight-bold" id="status-case">-</span></div>
+                                <div class="d-flex justify-content-between"><span class="text-muted">Etapa:</span>      <span class="font-weight-bold" id="status-step">-</span></div>
+                                <div class="d-flex justify-content-between"><span class="text-muted">ETA:</span>        <span class="font-weight-bold" id="status-eta">-</span></div>
+                                <div class="d-flex justify-content-between"><span class="text-muted">Velocidade:</span> <span class="font-weight-bold" id="status-rate">-</span></div>
                             </div>
+
+                            <div class="remigrar-section-title">Resultados</div>
+                            <div class="d-flex justify-content-between align-items-center small mb-2">
+                                <span class="text-muted">Casos Completos:</span>
+                                <span class="font-weight-bold" id="completed-count">0</span>
+                            </div>
+                            <button id="remigrar-export-now" class="btn btn-sm btn-outline-secondary btn-block">📥 Exportar Agora</button>
                         </div>
                     </div>
+
                 </div>
             </div>
         `;
-
-        const hud = shadow.querySelector('#remigrar-hud');
 
         const container = document.querySelector('#divInfraAreaTelaD')
             || document.querySelector('#divInfraConteudoForm')
             || document.querySelector('#divInfraConteudo')
             || document.querySelector('.infraAreaTelaD')
             || document.body;
-        container.insertBefore(shadowHost, container.firstChild);
+        container.insertBefore(wrapper, container.firstChild);
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // HUD ELEMENTS
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Elementos ──
         const elements = {
-            toggle: hud.querySelector('#remigrar-hud-toggle'),
-            modeCasualBtn: hud.querySelector('#remigrar-mode-casual'),
-            modeBulkBtn: hud.querySelector('#remigrar-mode-bulk'),
-            body: hud.querySelector('#remigrar-hud-body'),
-            // Containers
-            casualContainer: hud.querySelector('#remigrar-casual-container'),
-            bulkContainer: hud.querySelector('#remigrar-bulk-container'),
-            // Manual Inputs
-            manualInput: hud.querySelector('#remigrar-manual-input'),
-            manualCount: hud.querySelector('#remigrar-manual-count'),
-            manualStatus: hud.querySelector('#remigrar-manual-status'),
-            // Bulk Inputs
-            fileInput: hud.querySelector('#remigrar-file-input'),
-            fileInfo: hud.querySelector('#remigrar-file-info'),
-            instanceId: hud.querySelector('#remigrar-instance-id'),
-            totalInstances: hud.querySelector('#remigrar-total-instances'),
-            sliceInfo: hud.querySelector('#remigrar-slice-info'),
-            // Controls
-            startBtn: hud.querySelector('#remigrar-start'),
-            pauseBtn: hud.querySelector('#remigrar-pause'),
-            stopBtn: hud.querySelector('#remigrar-stop'),
-            progressFill: hud.querySelector('#remigrar-progress-fill'),
-            progressText: hud.querySelector('#remigrar-progress-text'),
-            statusState: hud.querySelector('#status-state'),
-            statusCase: hud.querySelector('#status-case'),
-            statusStep: hud.querySelector('#status-step'),
-            statusEta: hud.querySelector('#status-eta'),
-            statusRate: hud.querySelector('#status-rate'),
-            completedCount: hud.querySelector('#completed-count'),
-            exportBtn: hud.querySelector('#remigrar-export-now'),
-            resumeBanner: hud.querySelector('#remigrar-resume-banner')
+            toggle:          wrapper.querySelector('#remigrar-hud-toggle'),
+            modeCasualBtn:   wrapper.querySelector('#remigrar-mode-casual'),
+            modeBulkBtn:     wrapper.querySelector('#remigrar-mode-bulk'),
+            body:            wrapper.querySelector('#remigrar-hud-body'),
+            casualContainer: wrapper.querySelector('#remigrar-casual-container'),
+            bulkContainer:   wrapper.querySelector('#remigrar-bulk-container'),
+            manualInput:     wrapper.querySelector('#remigrar-manual-input'),
+            manualCount:     wrapper.querySelector('#remigrar-manual-count'),
+            manualStatus:    wrapper.querySelector('#remigrar-manual-status'),
+            fileInput:       wrapper.querySelector('#remigrar-file-input'),
+            fileInfo:        wrapper.querySelector('#remigrar-file-info'),
+            instanceId:      wrapper.querySelector('#remigrar-instance-id'),
+            totalInstances:  wrapper.querySelector('#remigrar-total-instances'),
+            sliceInfo:       wrapper.querySelector('#remigrar-slice-info'),
+            startBtn:        wrapper.querySelector('#remigrar-start'),
+            pauseBtn:        wrapper.querySelector('#remigrar-pause'),
+            stopBtn:         wrapper.querySelector('#remigrar-stop'),
+            progressFill:    wrapper.querySelector('#remigrar-progress-fill'),
+            statusState:     wrapper.querySelector('#status-state'),
+            statusCase:      wrapper.querySelector('#status-case'),
+            statusStep:      wrapper.querySelector('#status-step'),
+            statusEta:       wrapper.querySelector('#status-eta'),
+            statusRate:      wrapper.querySelector('#status-rate'),
+            completedCount:  wrapper.querySelector('#completed-count'),
+            exportBtn:       wrapper.querySelector('#remigrar-export-now'),
+            resumeBanner:    wrapper.querySelector('#remigrar-resume-banner')
         };
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // HUD STATE & RESUME LOGIC
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Estado ──
         let fileLoaded = false;
 
-        // Function to check for resume based on input
         function updateResumeStatus() {
-            // Check based on INPUT value, explicitly ignoring current session state
-            // This allows finding "lost" sessions after a browser restart
             const targetId = elements.instanceId.value;
             const cp = Storage.loadCheckpoint(targetId);
-
-            // Console log to debug what we are finding
             log(`Checking resume for ID ${targetId}:`, cp ? 'Found' : 'Null');
-
-            // Update completed count from this potential checkpoint
-            if (cp && cp.completedResults) {
-                elements.completedCount.textContent = cp.completedResults.length;
-            } else {
-                elements.completedCount.textContent = '0';
-            }
-
-            // Show/Hide resume banner
-            // We show it if we found a checkpoint that is NOT actively running (isActive=false) or if we just loaded it
-            // Note: On browser restart, isActive might still be true if it crashed, so we should arguably show it regardless
-            if (cp && !window._remigrarPendingAutomation) {
-                showResumeBanner(cp);
-            } else {
-                elements.resumeBanner.style.display = 'none';
-            }
+            elements.completedCount.textContent = (cp && cp.completedResults) ? cp.completedResults.length : '0';
+            if (cp && !window._remigrarPendingAutomation) showResumeBanner(cp);
+            else elements.resumeBanner.style.display = 'none';
         }
 
-        // Load saved settings
         const settings = Storage.loadSettings();
-
-        // Priority: Session ID > Settings > Default
         const activeSessionId = Session.getId();
-
         if (activeSessionId) {
-            elements.instanceId.value = activeSessionId;
-            elements.instanceId.disabled = true; // Lock it if session is active
-            log('Locked to Session Instance:', activeSessionId);
-
-            // Also try to restore totalInstances from checkpoint if possible
+            elements.instanceId.value    = activeSessionId;
+            elements.instanceId.disabled = true;
             const cp = Storage.loadCheckpoint(activeSessionId);
-            if (cp && cp.totalInstances) {
-                elements.totalInstances.value = cp.totalInstances;
-                elements.totalInstances.disabled = true;
-            } else if (settings.totalInstances) {
-                elements.totalInstances.value = settings.totalInstances;
-            }
+            if (cp && cp.totalInstances) { elements.totalInstances.value = cp.totalInstances; elements.totalInstances.disabled = true; }
+            else if (settings.totalInstances) elements.totalInstances.value = settings.totalInstances;
         } else {
-            // Setup mode - use last saved settings
-            if (settings.instanceId) elements.instanceId.value = settings.instanceId;
-            if (settings.totalInstances) elements.totalInstances.value = settings.totalInstances;
+            if (settings.instanceId)      elements.instanceId.value      = settings.instanceId;
+            if (settings.totalInstances)  elements.totalInstances.value  = settings.totalInstances;
         }
-
-        // Initial check for resume based on whatever ID is in the box
         updateResumeStatus();
-
-        // Add listener to update resume status when ID changes
         elements.instanceId.addEventListener('input', updateResumeStatus);
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // HUD FUNCTIONS
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Funções de UI ──
         function updateSliceInfo() {
-            if (!fileLoaded) {
-                elements.sliceInfo.textContent = 'Carregue um arquivo para ver a distribuição';
-                return;
-            }
-
-            const instanceId = parseInt(elements.instanceId.value) || 1;
-            const totalInstances = parseInt(elements.totalInstances.value) || 1;
+            if (!fileLoaded) { elements.sliceInfo.textContent = 'Carregue um arquivo para ver a distribuição'; return; }
+            const instanceId      = parseInt(elements.instanceId.value) || 1;
+            const totalInstances  = parseInt(elements.totalInstances.value) || 1;
             const slice = FileProcessor.getSlice(instanceId, totalInstances);
-
-            elements.sliceInfo.innerHTML = `
-                Sua faixa: <strong>${slice.start.toLocaleString()}</strong> → 
-                <strong>${(slice.end - 1).toLocaleString()}</strong> 
-                (<strong>${slice.count.toLocaleString()}</strong> casos)
-            `;
-
-            // Save settings
+            elements.sliceInfo.innerHTML = `Sua faixa: <strong>${slice.start.toLocaleString()}</strong> → <strong>${(slice.end-1).toLocaleString()}</strong> (<strong>${slice.count.toLocaleString()}</strong> casos)`;
             Storage.saveSettings({ instanceId, totalInstances });
         }
 
         function updateProgress(progress) {
-            elements.progressFill.style.width = `${progress.percent}%`;
-            elements.progressText.textContent = `${progress.percent}%`;
-            elements.statusCase.textContent = progress.currentCase || '-';
-            elements.statusStep.textContent = progress.step || '-';
-            elements.statusEta.textContent = progress.eta || '-';
-            elements.completedCount.textContent = progress.completed || 0;
-            if (elements.statusRate) {
-                const rate = _utils
-                    ? _utils.calcRate(progress.completed || 0, Automation.currentCheckpoint?.startedAt || Date.now())
-                    : '-';
-                elements.statusRate.textContent = rate;
-            }
+            elements.progressFill.style.width   = `${progress.percent}%`;
+            elements.progressFill.textContent    = `${progress.percent}%`;
+            elements.statusCase.textContent      = progress.currentCase || '-';
+            elements.statusStep.textContent      = progress.step || '-';
+            elements.statusEta.textContent       = progress.eta || '-';
+            elements.completedCount.textContent  = progress.completed || 0;
+            if (elements.statusRate) elements.statusRate.textContent = '-';
         }
 
-        function updateStatus(message) {
-            elements.statusState.innerHTML = message;
-        }
+        function updateStatus(message) { elements.statusState.innerHTML = message; }
 
         function setRunningState(isRunning, isPaused = false) {
-            elements.startBtn.disabled = isRunning;
-            elements.pauseBtn.disabled = !isRunning;
-            elements.stopBtn.disabled = !isRunning;
-            elements.fileInput.disabled = isRunning;
-            elements.instanceId.disabled = isRunning;
+            elements.startBtn.disabled       = isRunning;
+            elements.pauseBtn.disabled       = !isRunning;
+            elements.stopBtn.disabled        = !isRunning;
+            elements.fileInput.disabled      = isRunning;
+            elements.instanceId.disabled     = isRunning;
             elements.totalInstances.disabled = isRunning;
 
             if (isPaused) {
                 elements.pauseBtn.textContent = '▶ Retomar';
-                elements.pauseBtn.classList.remove('remigrar-btn-warning');
-                elements.pauseBtn.classList.add('remigrar-btn-primary');
+                elements.pauseBtn.classList.remove('btn-warning'); elements.pauseBtn.classList.add('btn-primary');
             } else {
                 elements.pauseBtn.textContent = '⏸ Pausar';
-                elements.pauseBtn.classList.add('remigrar-btn-warning');
-                elements.pauseBtn.classList.remove('remigrar-btn-primary');
+                elements.pauseBtn.classList.remove('btn-primary'); elements.pauseBtn.classList.add('btn-warning');
             }
         }
 
         function showResumeBanner(checkpoint) {
-            const elapsed = formatTime(Date.now() - checkpoint.startedAt);
+            const elapsed  = formatTime(Date.now() - checkpoint.startedAt);
             const progress = Math.round(((checkpoint.currentIndex - checkpoint.sliceStart) / (checkpoint.sliceEnd - checkpoint.sliceStart)) * 100);
-
             elements.resumeBanner.style.display = 'block';
             elements.resumeBanner.innerHTML = `
-                <div class="resume-banner-title">⚠️ Sessão Anterior Encontrada</div>
-                <div class="resume-banner-info">
+                <strong class="d-block mb-1" style="color:#856404">⚠️ Sessão Anterior Encontrada</strong>
+                <small class="d-block text-muted mb-2">
                     Arquivo: ${checkpoint.inputFileName}<br>
-                    Instância ${checkpoint.instanceId}/${checkpoint.totalInstances} | 
+                    Instância ${checkpoint.instanceId}/${checkpoint.totalInstances} |
                     Progresso: ${progress}% | Tempo: ${elapsed}
-                </div>
-                <div class="resume-banner-buttons">
-                    <button id="resume-yes" class="remigrar-btn remigrar-btn-primary">▶ Retomar</button>
-                    <button id="resume-no" class="remigrar-btn remigrar-btn-secondary">🔄 Recomeçar</button>
-                </div>
+                </small>
+                <button id="resume-yes" class="btn btn-sm btn-primary mr-2">▶ Retomar</button>
+                <button id="resume-no"  class="btn btn-sm btn-secondary">🔄 Recomeçar</button>
             `;
-
             elements.resumeBanner.querySelector('#resume-yes').onclick = () => {
                 elements.resumeBanner.style.display = 'none';
-
-                // Check if we have caseQueue in checkpoint (new format)
                 if (checkpoint.caseQueue && checkpoint.caseQueue.length > 0) {
-                    // Can resume directly without file
                     log('Resuming directly from stored queue');
                     elements.instanceId.value = checkpoint.instanceId;
                     elements.totalInstances.value = checkpoint.totalInstances;
                     updateSliceInfo();
-
-                    // Update file info display
                     elements.fileInfo.classList.remove('empty');
-                    elements.fileInfo.innerHTML = `
-                        <strong>${checkpoint.inputFileName}</strong> (da sessão anterior)<br>
-                        ${checkpoint.caseQueue.length.toLocaleString()} casos na fila
-                    `;
-
+                    elements.fileInfo.innerHTML = `<strong>${checkpoint.inputFileName}</strong> (da sessão anterior)<br>${checkpoint.caseQueue.length.toLocaleString()} casos na fila`;
                     setRunningState(true);
                     Automation.currentCheckpoint = checkpoint;
                     Automation.isRunning = true;
                     Automation.processNext();
                 } else {
-                    // Old format - need file reload
                     alert(`Por favor, selecione o mesmo arquivo: ${checkpoint.inputFileName}`);
                     window.pendingResume = checkpoint;
                 }
             };
-
             elements.resumeBanner.querySelector('#resume-no').onclick = () => {
-                Storage.clearCheckpoint();
-                elements.resumeBanner.style.display = 'none';
+                Storage.clearCheckpoint(); elements.resumeBanner.style.display = 'none';
             };
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // HUD EVENT HANDLERS
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Toggle collapse ──
+        elements.toggle.addEventListener('click', () => {
+            elements.body.classList.toggle('collapsed');
+            elements.toggle.textContent = elements.body.classList.contains('collapsed') ? '+' : '−';
+        });
 
-        // Toggle collapse
-        if (_utils) {
-            _utils.makeCollapsible(elements.toggle, elements.body);
-        } else {
-            elements.toggle.addEventListener('click', () => {
-                elements.body.classList.toggle('collapsed');
-                elements.toggle.textContent = elements.body.classList.contains('collapsed') ? '+' : '−';
-            });
-        }
-
-        // File selection
+        // ── Seleção de arquivo ──
         elements.fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             try {
                 updateStatus('📂 Carregando arquivo...');
                 const result = await FileProcessor.loadFile(file);
-
-                elements.fileInfo.classList.remove('empty');
-                elements.fileInfo.innerHTML = `
-                    <strong>${result.fileName}</strong><br>
-                    ${result.totalCases.toLocaleString()} casos válidos
-                `;
-
+                elements.fileInfo.innerHTML = `<strong>${result.fileName}</strong><br>${result.totalCases.toLocaleString()} casos válidos`;
                 fileLoaded = true;
                 elements.startBtn.disabled = false;
                 updateSliceInfo();
-
-                // Check for pending resume
                 if (window.pendingResume) {
-                    const checkpoint = window.pendingResume;
-                    if (checkpoint.inputFileHash === FileProcessor.fileHash) {
-                        elements.instanceId.value = checkpoint.instanceId;
-                        elements.totalInstances.value = checkpoint.totalInstances;
-                        updateSliceInfo();
-
-                        // Resume and BIND session
-                        Session.setId(checkpoint.instanceId);
-                        Automation.resume(checkpoint);
-                        setRunningState(true);
-                        Automation.processNext();
+                    const cp = window.pendingResume;
+                    if (cp.inputFileHash === FileProcessor.fileHash) {
+                        elements.instanceId.value = cp.instanceId; elements.totalInstances.value = cp.totalInstances;
+                        updateSliceInfo(); Session.setId(cp.instanceId);
+                        Automation.resume(cp); setRunningState(true); Automation.processNext();
                         delete window.pendingResume;
                     } else {
-                        alert('⚠️ Hash do arquivo não corresponde! Não é possível retomar. Iniciando nova sessão.');
-                        Storage.clearCheckpoint(checkpoint.instanceId);
-                        delete window.pendingResume;
+                        alert('⚠️ Hash do arquivo não corresponde! Iniciando nova sessão.');
+                        Storage.clearCheckpoint(cp.instanceId); delete window.pendingResume;
                     }
                 }
-
                 updateStatus('✅ Arquivo carregado');
-            } catch (err) {
-                err('File load error:', err);
-                updateStatus('❌ Erro ao carregar arquivo');
-            }
+            } catch (e) { err('File load error:', e); updateStatus('❌ Erro ao carregar arquivo'); }
         });
 
-        // Instance settings change
         elements.instanceId.addEventListener('change', updateSliceInfo);
         elements.totalInstances.addEventListener('change', updateSliceInfo);
 
-        // Toggle Mode logic
-        let isCasualMode = true; // Default to casual
+        // ── Toggle de modo ──
+        let isCasualMode = true;
 
         function toggleMode(setCasual = null) {
             isCasualMode = setCasual !== null ? setCasual : !isCasualMode;
-
-            // Sync FileProcessor mode
             FileProcessor.activeMode = isCasualMode ? 'manual' : 'file';
 
             if (isCasualMode) {
                 elements.casualContainer.classList.remove('mode-hidden');
                 elements.bulkContainer.classList.add('mode-hidden');
-
-                // Update button state based on manual input
-                const count = FileProcessor.allCases.length;
-                elements.startBtn.disabled = count === 0;
+                elements.startBtn.disabled = FileProcessor.allCases.length === 0;
+                elements.modeCasualBtn.classList.remove('btn-outline-secondary'); elements.modeCasualBtn.classList.add('btn-secondary');
+                elements.modeBulkBtn.classList.remove('btn-secondary');           elements.modeBulkBtn.classList.add('btn-outline-secondary');
             } else {
                 elements.casualContainer.classList.add('mode-hidden');
                 elements.bulkContainer.classList.remove('mode-hidden');
                 elements.startBtn.disabled = !fileLoaded;
+                elements.modeBulkBtn.classList.remove('btn-outline-secondary');   elements.modeBulkBtn.classList.add('btn-secondary');
+                elements.modeCasualBtn.classList.remove('btn-secondary');          elements.modeCasualBtn.classList.add('btn-outline-secondary');
             }
-
-            elements.modeCasualBtn.classList.toggle('active', isCasualMode);
-            elements.modeBulkBtn.classList.toggle('active', !isCasualMode);
-
             Storage.saveSettings({ ...Storage.loadSettings(), isCasualMode });
         }
 
         elements.modeCasualBtn.addEventListener('click', () => toggleMode(true));
-        elements.modeBulkBtn.addEventListener('click', () => toggleMode(false));
+        elements.modeBulkBtn.addEventListener('click',   () => toggleMode(false));
+        toggleMode(settings.isCasualMode !== undefined ? settings.isCasualMode : true);
 
-        // Restore mode setting
-        if (settings.isCasualMode !== undefined) {
-            toggleMode(settings.isCasualMode);
-        } else {
-            toggleMode(true); // Default
-        }
-
-        // Manual Input Handler
+        // ── Entrada manual ──
         elements.manualInput.addEventListener('input', (e) => {
-            const text = e.target.value;
-            const result = FileProcessor.loadText(text);
-
+            const result = FileProcessor.loadText(e.target.value);
             elements.manualCount.textContent = result.totalCases;
             if (result.totalCases > 0) {
                 elements.manualStatus.textContent = `✅ ${result.totalCases} casos identificados`;
-                elements.manualStatus.style.color = '#48bb78';
+                elements.manualStatus.className   = 'small text-success';
                 elements.startBtn.disabled = false;
             } else {
                 elements.manualStatus.textContent = 'Aguardando entrada válida...';
-                elements.manualStatus.style.color = '#a0aec0';
+                elements.manualStatus.className   = 'small text-muted';
                 elements.startBtn.disabled = true;
             }
         });
 
-        // Start button
+        // ── Botão Iniciar ──
         elements.startBtn.addEventListener('click', () => {
-            let instanceId = 1;
-            let totalInstances = 1;
-
+            let instanceId = 1, totalInstances = 1;
             if (isCasualMode) {
-                // In casual mode, we use the text input and force instance 1/1
-                const text = elements.manualInput.value;
-                const result = FileProcessor.loadText(text);
-                if (result.totalCases === 0) {
-                    alert('Nenhum caso válido encontrado no texto!');
-                    return;
-                }
-                // Instance ID and Total are always 1 for casual
+                const result = FileProcessor.loadText(elements.manualInput.value);
+                if (result.totalCases === 0) { alert('Nenhum caso válido encontrado!'); return; }
             } else {
-                // Bulk mode checks
                 instanceId = parseInt(elements.instanceId.value) || 1;
                 totalInstances = parseInt(elements.totalInstances.value) || 1;
-
-                if (instanceId < 1 || instanceId > totalInstances) {
-                    alert('ID da instância deve estar entre 1 e o total de instâncias');
-                    return;
-                }
+                if (instanceId < 1 || instanceId > totalInstances) { alert('ID da instância deve estar entre 1 e o total de instâncias'); return; }
             }
-
             setRunningState(true);
             Automation.start(instanceId, totalInstances);
         });
 
-        // Pause button
+        // ── Botão Pausar ──
         elements.pauseBtn.addEventListener('click', () => {
-            if (Automation.isPaused) {
-                Automation.unpause();
-                setRunningState(true, false);
-            } else {
-                Automation.pause();
-                setRunningState(true, true);
-            }
+            if (Automation.isPaused) { Automation.unpause(); setRunningState(true, false); }
+            else                     { Automation.pause();   setRunningState(true, true);  }
         });
 
-        // Stop button
+        // ── Botão Parar ──
         elements.stopBtn.addEventListener('click', () => {
-            if (confirm('Parar processamento? O progresso será perdido.')) {
-                Automation.stop();
-                setRunningState(false);
-            }
+            if (confirm('Parar processamento? O progresso será perdido.')) { Automation.stop(); setRunningState(false); }
         });
 
-        // Export button - exports results from checkpoint
+        // ── Botão Exportar ──
         elements.exportBtn.addEventListener('click', () => {
             const cp = Storage.loadCheckpoint();
-
-            if (!cp || !cp.completedResults || cp.completedResults.length === 0) {
-                updateStatus('ℹ️ Nenhum resultado para exportar');
-                return;
-            }
-
-            const exported = exportResults(cp.completedResults, cp.instanceId);
-            updateStatus(`📥 Exportados ${exported} resultados`);
+            if (!cp || !cp.completedResults || !cp.completedResults.length) { updateStatus('ℹ️ Nenhum resultado para exportar'); return; }
+            updateStatus(`📥 Exportados ${exportResults(cp.completedResults, cp.instanceId)} resultados`);
         });
 
-        // Connect automation callbacks
+        // ── Conecta callbacks ──
         Automation.onProgressUpdate = updateProgress;
-        Automation.onStatusUpdate = updateStatus;
+        Automation.onStatusUpdate   = updateStatus;
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // CHECK FOR EXISTING CHECKPOINT
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Verifica checkpoint existente ──
         const existingCheckpoint = Storage.loadCheckpoint();
-        // Only show banner if checkpoint exists but automation is not auto-continuing
-        // (i.e., paused or stopped state - not awaitingResult and not isActive)
-        // Skip showing banner if pendingAutomation flag is set (will auto-continue)
         if (existingCheckpoint && !existingCheckpoint.awaitingResult && !existingCheckpoint.isActive && !window._remigrarPendingAutomation) {
             showResumeBanner(existingCheckpoint);
         }
@@ -1690,121 +891,62 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════════════════
-
     log('========== SCRIPT STARTING ==========');
     log('URL:', window.location.href);
     log('isRemigrarPage:', isRemigrarPage());
-
-    // Debug storage immediately
     Storage.debugKeys();
 
-    // Try to load checkpoint using default logic (session ID if present)
     let checkpoint = Storage.loadCheckpoint();
 
-    // AUTO-RECOVERY LOGIC FOR RESULT PAGES
-    // If we are on a result page (remigrar_processo_modulo) but found no checkpoint
-    // (likely because Session.getId() is empty after browser restart),
-    // we must aggressively hunt for the correct checkpoint to latch onto.
     const isResultPage = window.location.search.includes('remigrar_processo_modulo');
     if (isResultPage && !checkpoint) {
         warn('Result page detected but no checkpoint/session found! attempting auto-discovery...');
-
         const keys = GM_listValues();
         for (const key of keys) {
             if (key.startsWith(CONFIG.CHECKPOINT_KEY + '_inst_')) {
                 const possibleCp = JSON.parse(GM_getValue(key));
-                // If this checkpoint is waiting for a result AND isActive, it's our candidate
                 if (possibleCp && possibleCp.awaitingResult) {
                     log(`🎯 Found orphaned active checkpoint: ${key} (Instance ${possibleCp.instanceId})`);
-
-                    // BIND SESSION immediately so subsequent calls work
                     Session.setId(possibleCp.instanceId);
-                    checkpoint = possibleCp;
-                    break;
+                    checkpoint = possibleCp; break;
                 }
             }
         }
     }
 
-    log('Checkpoint (final):', checkpoint ? {
-        awaitingResult: checkpoint.awaitingResult,
-        isActive: checkpoint.isActive,
-        currentStep: checkpoint.currentStep,
-        currentCaseNumber: checkpoint.currentCaseNumber,
-        instanceId: checkpoint.instanceId
-    } : 'none');
+    log('Checkpoint (final):', checkpoint ? { awaitingResult: checkpoint.awaitingResult, isActive: checkpoint.isActive, currentStep: checkpoint.currentStep, currentCaseNumber: checkpoint.currentCaseNumber, instanceId: checkpoint.instanceId } : 'none');
 
-    // Determine if we have pending automation BEFORE creating HUD
-    // This prevents the resume banner from showing when we should auto-continue
     const hasPendingAutomation = checkpoint && (checkpoint.awaitingResult || checkpoint.isActive);
-    if (hasPendingAutomation) {
-        window._remigrarPendingAutomation = true;
-    }
+    if (hasPendingAutomation) window._remigrarPendingAutomation = true;
 
-    // Only proceed on remigrar page OR if we are expecting a result (which might be on a diff URL)
-    // Check session ID as well - if we have an active session, we should always show HUD to allow control
-    const activeSession = Session.getId();
-    const shouldShowHUD = isRemigrarPage() || (checkpoint && (checkpoint.awaitingResult || checkpoint.isActive)) || !!activeSession;
-
-    const isResultPageFullCheck = window.location.search.includes('remigrar_processo_modulo');
+    const activeSession  = Session.getId();
+    const shouldShowHUD  = isRemigrarPage() || (checkpoint && (checkpoint.awaitingResult || checkpoint.isActive)) || !!activeSession;
+    const isResultPageFull = window.location.search.includes('remigrar_processo_modulo');
 
     if (shouldShowHUD) {
         log('Initializing HUD — Page:', isRemigrarPage(), 'Checkpoint:', !!checkpoint);
-        // Create HUD first - this connects callback handlers
         const hudControls = createHUD();
-        console.log('[eProc Remigrar v2.1] HUD initialized');
+        console.log('[eProc Remigrar v2.7] HUD initialized');
 
-        // Now handle pending automation (after HUD callbacks are connected)
         if (checkpoint) {
-            // FIX: If we are physically on a result page, we MUST process the result, 
-            // even if the checkpoint says awaitingResult=false (which can happen if save failed)
-            const forceResultProcessing = isResultPageFullCheck && checkpoint.isActive;
-
+            const forceResultProcessing = isResultPageFull && checkpoint.isActive;
             if (checkpoint.awaitingResult || forceResultProcessing) {
-                // We just came back from a submission - handle result immediately
                 log('Processing result for:', checkpoint.currentCaseNumber);
                 hudControls.setRunningState(true);
-                Automation.isRunning = true; // CRITICAL FIX: execution cannot proceed without this
-
-                // If we forced processing, ensure 'awaitingResult' matches reality for logic downstream
-                if (forceResultProcessing && !checkpoint.awaitingResult) {
-                    checkpoint.awaitingResult = true;
-                    Storage.saveCheckpoint(checkpoint);
-                }
-
+                Automation.isRunning = true;
+                if (forceResultProcessing && !checkpoint.awaitingResult) { checkpoint.awaitingResult = true; Storage.saveCheckpoint(checkpoint); }
                 hudControls.updateStatus(`🔄 Processando resultado: ${checkpoint.currentCaseNumber} (${checkpoint.currentStep?.toUpperCase()})`);
-                setTimeout(() => {
-                    Automation.handleResult();
-                }, 500);
+                setTimeout(() => { Automation.handleResult(); }, 500);
             } else if (checkpoint.isActive && !checkpoint.awaitingResult) {
-                // We're continuing automation after handling a result
                 log('Continuing automation, step:', checkpoint.currentStep, 'case:', checkpoint.currentCaseNumber);
                 hudControls.setRunningState(true);
-                Automation.isRunning = true; // CRITICAL FIX
+                Automation.isRunning = true;
                 hudControls.updateStatus(`🔄 Continuando: ${checkpoint.currentCaseNumber || '...'} (${checkpoint.currentStep?.toUpperCase()})`);
-
-                // Update progress display immediately
                 const total = checkpoint.sliceEnd - checkpoint.sliceStart;
                 const current = checkpoint.currentIndex - checkpoint.sliceStart;
-                const completed = (checkpoint.completedResults || []).length;
-                hudControls.updateProgress({
-                    current: current,
-                    total: total,
-                    percent: Math.round((current / total) * 100),
-                    currentCase: checkpoint.currentCaseNumber || '...',
-                    step: checkpoint.currentStep?.toUpperCase() || 'N/A',
-                    eta: '-',
-                    completed: completed
-                });
-
-                setTimeout(() => {
-                    Automation.currentCheckpoint = checkpoint;
-                    Automation.isRunning = true;
-                    Automation.processNext();
-                }, 300);
+                hudControls.updateProgress({ current, total, percent: Math.round((current/total)*100), currentCase: checkpoint.currentCaseNumber || '...', step: checkpoint.currentStep?.toUpperCase() || 'N/A', eta: '-', completed: (checkpoint.completedResults||[]).length });
+                setTimeout(() => { Automation.currentCheckpoint = checkpoint; Automation.isRunning = true; Automation.processNext(); }, 300);
             }
-            // Otherwise, checkpoint exists but isActive is false (paused/stopped)
-            // The HUD will show the resume banner
         }
     }
 })();
